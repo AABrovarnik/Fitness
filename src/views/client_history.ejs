@@ -1,0 +1,37 @@
+<%- include('partials/header', { title: 'История', user }) %>
+<h1>История тренировок</h1>
+<nav class="tabs">
+  <a href="/client">Обзор</a><a href="/client/profile">Профиль</a><a href="/client/bookings">Записи</a><a href="/client/history">История</a><a href="/client/memory">Память AI</a><a href="/client/chat">Чат</a>
+</nav>
+<form id="historyForm" class="card grid-3">
+  <input name="log_date" type="date" required />
+  <input name="load_type" placeholder="Тип нагрузки" required />
+  <input name="duration_min" type="number" min="5" max="300" placeholder="Длительность" required />
+  <input name="intensity" type="number" min="1" max="10" placeholder="Интенсивность 1-10" required />
+  <input name="note" placeholder="Заметка" />
+  <button type="submit">Добавить</button>
+</form>
+<p id="historyResult" class="muted"></p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Дата</th><th>Нагрузка</th><th>Мин</th><th>Интенсивность</th><th>Заметка</th></tr></thead>
+  <tbody>
+    <% items.forEach((item) => { %>
+      <tr>
+        <td><%= item.log_date %></td><td><%= item.load_type %></td><td><%= item.duration_min %></td><td><%= item.intensity %></td><td><%= item.note %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+</div>
+<script>
+  document.getElementById('historyForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(event.target).entries());
+    const response = await fetch('/api/client/history', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const result = await response.json();
+    document.getElementById('historyResult').textContent = result.ok ? 'Запись добавлена.' : result.error;
+    if (result.ok) location.reload();
+  });
+</script>
+<%- include('partials/footer') %>

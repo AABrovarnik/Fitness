@@ -1,0 +1,13 @@
+<%- include('partials/header', { title: 'Регистрация', user }) %>
+<section class="auth">
+  <h1>Регистрация клиента</h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/auth/register" class="card stack">
+    <input name="name" placeholder="Имя" required />
+    <input name="email" type="email" placeholder="Email" required />
+    <input name="phone" placeholder="Телефон" required />
+    <input name="password" type="password" placeholder="Пароль (минимум 5 символов)" minlength="5" required />
+    <button type="submit">Создать аккаунт</button>
+  </form>
+</section>
+<%- include('partials/footer') %>

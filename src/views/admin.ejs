@@ -1,0 +1,36 @@
+<%- include('partials/header', { title: 'Админка', user }) %>
+<h1>Административная панель</h1>
+<nav class="tabs">
+  <a href="/admin">Сводка</a>
+  <a href="/admin/clients">Клиенты</a>
+  <a href="/admin/conversations">Обращения</a>
+</nav>
+<section class="grid-3">
+  <article class="card"><h2>Клиенты</h2><p><%= stats.clients %></p></article>
+  <article class="card"><h2>Новые лиды</h2><p><%= stats.leadsNew %></p></article>
+  <article class="card"><h2>Активные обращения</h2><p><%= stats.conversations %></p></article>
+</section>
+
+<section class="card">
+  <h2>AI API ключ</h2>
+  <p class="muted">Ключ не отображается после сохранения. Хранится в защищённой памяти процесса и не пишется в логи.</p>
+  <p><strong>Статус:</strong> <%= aiKeyConfigured ? 'Настроен' : 'Не задан' %></p>
+  <% if (keySaved) { %><p class="success">Ключ успешно сохранён.</p><% } %>
+  <form method="post" action="/admin/settings/ai-key" class="row">
+    <input type="password" name="ai_api_key" placeholder="Введите AI_API_KEY" autocomplete="new-password" required />
+    <button type="submit">Сохранить ключ</button>
+  </form>
+</section>
+
+<section>
+  <h2>Абонементы истекают в 14 дней</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Клиент</th><th>Дата</th></tr></thead>
+      <tbody>
+      <% expiring.forEach((item) => { %><tr><td><%= item.name %></td><td><%= new Date(item.ends_at).toLocaleDateString('ru-RU') %></td></tr><% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('partials/footer') %>

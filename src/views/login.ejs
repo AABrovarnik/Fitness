@@ -1,0 +1,12 @@
+<%- include('partials/header', { title: 'Вход', user }) %>
+<section class="auth">
+  <h1>Вход</h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/auth/login" class="card stack">
+    <input name="email" type="email" placeholder="Email" required />
+    <input name="password" type="password" placeholder="Пароль" required />
+    <button type="submit">Войти</button>
+  </form>
+  <p class="muted">Тестовый пароль для seed-аккаунтов: <code>11111</code></p>
+</section>
+<%- include('partials/footer') %>

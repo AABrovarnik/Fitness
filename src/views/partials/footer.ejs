@@ -1,0 +1,18 @@
+</main>
+<footer class="footer">
+  <div class="container">
+    <small>Демо-данные и цены — только для прототипа.</small>
+  </div>
+</footer>
+<script>
+  async function postForm(url, payload) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return response.json();
+  }
+</script>
+</body>
+</html>

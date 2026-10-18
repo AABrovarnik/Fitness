@@ -1,0 +1,38 @@
+<%- include('partials/header', { title: 'Чат', user }) %>
+<h1>Чат с клубом</h1>
+<nav class="tabs">
+  <a href="/client">Обзор</a><a href="/client/profile">Профиль</a><a href="/client/bookings">Записи</a><a href="/client/history">История</a><a href="/client/memory">Память AI</a><a href="/client/chat">Чат</a>
+</nav>
+<div class="card">
+  <p><strong>Тема:</strong> <%= conversation.topic %> · <strong>Статус:</strong> <%= conversation.status %> · <strong>Режим:</strong> <%= conversation.mode %></p>
+  <div class="chat-box">
+    <% messages.forEach((m) => { %>
+      <div class="msg <%= m.author_role %>">
+        <small><%= m.author_role %> · <%= new Date(m.created_at).toLocaleString('ru-RU') %></small>
+        <p><%= m.content %></p>
+      </div>
+    <% }) %>
+  </div>
+  <form id="chatForm" class="stack">
+    <select name="mode">
+      <option value="ai">AI-консультант</option>
+      <option value="trainer">AI-тренер</option>
+      <option value="human">Позвать администратора</option>
+    </select>
+    <textarea name="content" rows="3" placeholder="Ваш вопрос" required></textarea>
+    <button type="submit">Отправить</button>
+  </form>
+  <p id="chatResult" class="muted"></p>
+</div>
+<script>
+  document.getElementById('chatForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(event.target).entries());
+    payload.conversation_id = '<%= conversation.id %>';
+    const response = await fetch('/api/client/chat/message', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const result = await response.json();
+    document.getElementById('chatResult').textContent = result.ok ? 'Сообщение отправлено.' : result.error;
+    if (result.ok) location.reload();
+  });
+</script>
+<%- include('partials/footer') %>

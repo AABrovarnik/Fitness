@@ -1,0 +1,52 @@
+<%- include('partials/header', { title: 'Память AI', user }) %>
+<h1>Память AI</h1>
+<nav class="tabs">
+  <a href="/client">Обзор</a><a href="/client/profile">Профиль</a><a href="/client/bookings">Записи</a><a href="/client/history">История</a><a href="/client/memory">Память AI</a><a href="/client/chat">Чат</a>
+</nav>
+<form id="memoryForm" class="card grid-3">
+  <input name="category" placeholder="Категория" required />
+  <input name="fact" placeholder="Короткий факт" required />
+  <button type="submit">Сохранить</button>
+</form>
+<p id="memoryResult" class="muted"></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Категория</th><th>Факт</th><th>Обновлено</th><th></th></tr></thead>
+    <tbody>
+    <% rows.forEach((row) => { %>
+      <tr>
+        <td><%= row.category %></td>
+        <td><%= row.fact %></td>
+        <td><%= new Date(row.updated_at).toLocaleString('ru-RU') %></td>
+        <td><button onclick="removeMemory('<%= row.id %>')">Удалить</button></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>
+<button onclick="clearAll()" class="danger">Очистить всю память</button>
+<script>
+  document.getElementById('memoryForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(event.target).entries());
+    const response = await fetch('/api/client/memory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const result = await response.json();
+    document.getElementById('memoryResult').textContent = result.ok ? 'Сохранено.' : result.error;
+    if (result.ok) location.reload();
+  });
+
+  async function removeMemory(id) {
+    const response = await fetch(`/api/client/memory/${id}`, { method: 'DELETE' });
+    const result = await response.json();
+    document.getElementById('memoryResult').textContent = result.ok ? 'Удалено.' : result.error;
+    if (result.ok) location.reload();
+  }
+
+  async function clearAll() {
+    const response = await fetch('/api/client/memory', { method: 'DELETE' });
+    const result = await response.json();
+    document.getElementById('memoryResult').textContent = result.ok ? 'Память очищена.' : result.error;
+    if (result.ok) location.reload();
+  }
+</script>
+<%- include('partials/footer') %>

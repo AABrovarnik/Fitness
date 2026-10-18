@@ -1,0 +1,68 @@
+<%- include('partials/header', { title: 'Записи', user }) %>
+<h1>Запись на занятия</h1>
+<nav class="tabs">
+  <a href="/client">Обзор</a><a href="/client/profile">Профиль</a><a href="/client/bookings">Записи</a><a href="/client/history">История</a><a href="/client/memory">Память AI</a><a href="/client/chat">Чат</a>
+</nav>
+<section class="grid-2">
+  <article>
+    <h2>Доступные события</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Название</th><th>Старт</th><th>Вместимость</th><th></th></tr></thead>
+        <tbody>
+        <% events.forEach((event) => { %>
+          <tr>
+            <td><%= event.title %></td>
+            <td><%= new Date(event.starts_at).toLocaleString('ru-RU') %></td>
+            <td><%= event.capacity %></td>
+            <td><button onclick="book('<%= event.id %>')">Записаться</button></td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+  <article>
+    <h2>Мои записи</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Занятие</th><th>Начало</th><th>Статус</th><th></th></tr></thead>
+        <tbody>
+        <% mine.forEach((booking) => { %>
+          <tr>
+            <td><%= booking.title %></td>
+            <td><%= new Date(booking.starts_at).toLocaleString('ru-RU') %></td>
+            <td><%= booking.status %></td>
+            <td>
+              <% if (booking.status === 'booked') { %>
+                <button onclick="cancelBooking('<%= booking.id %>')">Отменить</button>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+<p id="bookingResult" class="muted"></p>
+<script>
+  async function book(eventId) {
+    const response = await fetch('/api/client/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId })
+    });
+    const payload = await response.json();
+    document.getElementById('bookingResult').textContent = payload.ok ? 'Запись создана.' : payload.error;
+    if (payload.ok) location.reload();
+  }
+
+  async function cancelBooking(id) {
+    const response = await fetch(`/api/client/bookings/${id}/cancel`, { method: 'POST' });
+    const payload = await response.json();
+    document.getElementById('bookingResult').textContent = payload.ok ? 'Запись отменена.' : payload.error;
+    if (payload.ok) location.reload();
+  }
+</script>
+<%- include('partials/footer') %>

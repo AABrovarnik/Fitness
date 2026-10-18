@@ -1,0 +1,18 @@
+<%- include('partials/header', { title: 'Клиенты', user }) %>
+<h1>Клиенты</h1>
+<nav class="tabs"><a href="/admin">Сводка</a><a href="/admin/clients">Клиенты</a><a href="/admin/conversations">Обращения</a></nav>
+<form method="get" action="/admin/clients" class="card row">
+  <input name="q" value="<%= q %>" placeholder="Поиск по имени или контакту" />
+  <button type="submit">Найти</button>
+</form>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Имя</th><th>Email</th><th>Телефон</th><th>Статус</th></tr></thead>
+    <tbody>
+      <% clients.forEach((client) => { %>
+        <tr><td><%= client.name %></td><td><%= client.email %></td><td><%= client.phone %></td><td><%= client.status %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/footer') %>

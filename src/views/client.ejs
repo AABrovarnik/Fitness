@@ -1,0 +1,33 @@
+<%- include('partials/header', { title: 'Кабинет', user }) %>
+<h1>Личный кабинет</h1>
+<nav class="tabs">
+  <a href="/client">Обзор</a>
+  <a href="/client/profile">Профиль</a>
+  <a href="/client/bookings">Записи</a>
+  <a href="/client/history">История</a>
+  <a href="/client/memory">Память AI</a>
+  <a href="/client/chat">Чат</a>
+</nav>
+<section class="grid-2">
+  <article class="card">
+    <h2>Текущий абонемент</h2>
+    <% if (membership) { %>
+      <p><strong><%= membership.type_name %></strong></p>
+      <p>Статус: <%= membership.status %></p>
+      <p>Действует до: <%= new Date(membership.ends_at).toLocaleDateString('ru-RU') %></p>
+      <p>Остаток: <%= membership.visit_limit ? (membership.visit_limit - membership.visit_used) : 'Безлимит' %></p>
+    <% } else { %>
+      <p>Нет назначенного абонемента.</p>
+    <% } %>
+  </article>
+  <article class="card">
+    <h2>Ближайшая запись</h2>
+    <% if (nextBooking) { %>
+      <p><strong><%= nextBooking.title %></strong></p>
+      <p><%= new Date(nextBooking.starts_at).toLocaleString('ru-RU') %></p>
+    <% } else { %>
+      <p>Нет ближайших записей.</p>
+    <% } %>
+  </article>
+</section>
+<%- include('partials/footer') %>

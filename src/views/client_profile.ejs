@@ -1,0 +1,25 @@
+<%- include('partials/header', { title: 'Профиль', user }) %>
+<h1>Профиль и предпочтения</h1>
+<nav class="tabs">
+  <a href="/client">Обзор</a><a href="/client/profile">Профиль</a><a href="/client/bookings">Записи</a><a href="/client/history">История</a><a href="/client/memory">Память AI</a><a href="/client/chat">Чат</a>
+</nav>
+<% if (saved) { %><p class="success">Профиль сохранён.</p><% } %>
+<form method="post" action="/client/profile" class="card stack">
+  <label>Имя<input value="<%= profile.name %>" disabled /></label>
+  <label>Email<input value="<%= profile.email %>" disabled /></label>
+  <label>Контакт<input value="<%= profile.phone || '' %>" disabled /></label>
+  <label>Удобные дни<input name="preferred_days" value="<%= profile.preferred_days || '' %>" /></label>
+  <label>Удобное время<input name="preferred_time" value="<%= profile.preferred_time || '' %>" /></label>
+  <label>Цель<input name="goal" value="<%= profile.goal || '' %>" /></label>
+  <label>Формат
+    <select name="format">
+      <option value="self" <%= profile.format === 'self' ? 'selected' : '' %>>Самостоятельно</option>
+      <option value="group" <%= profile.format === 'group' ? 'selected' : '' %>>Группа</option>
+      <option value="trainer" <%= profile.format === 'trainer' ? 'selected' : '' %>>С тренером</option>
+    </select>
+  </label>
+  <label>Интересы<input name="interests" value="<%= profile.interests || '' %>" /></label>
+  <label><input type="checkbox" name="memory_enabled" <%= profile.memory_enabled ? 'checked' : '' %> /> Включить долгосрочную память AI</label>
+  <button type="submit">Сохранить</button>
+</form>
+<%- include('partials/footer') %>
