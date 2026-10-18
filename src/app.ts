@@ -3,7 +3,7 @@ import session from "express-session";
 import path from "node:path";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { config, isAiKeyConfigured, setAiApiKey } from "./config.js";
+import { config, getAiModel, isAiKeyConfigured, setAiApiKey, setAiModel } from "./config.js";
 import { openDb, runMigrations, nowIso, type Db } from "./db/db.js";
 import { hashPassword, verifyPassword } from "./services/auth.js";
 import { requireRole } from "./middleware/auth.js";
@@ -353,7 +353,7 @@ export function createApp(dbArg?: Db) {
 
     if (parsed.data.mode !== "human") {
       const mode = parsed.data.mode === "trainer" ? "trainer" : "consultant";
-      aiReply = getAiReply(db, mode, parsed.data.content, req.session.user!.id).text;
+      aiReply = getAiReply(db, mode, parsed.data.content, req.session.user!.id, conv.id).text;
       db.prepare(`INSERT INTO messages(id, conversation_id, author_role, author_id, content, created_at) VALUES(?, ?, 'ai', NULL, ?, ?)`).run(nanoid(), conv.id, aiReply, nowIso());
     }
 
@@ -361,7 +361,7 @@ export function createApp(dbArg?: Db) {
     res.json({ ok: true, reply: aiReply });
   });
 
-  app.get("/admin", requireRole("admin"), (req, res) => {
+  app.get("/admin", requireRole("admin"), (_req, res) => {
     refreshMemberships();
     const stats = {
       clients: (db.prepare(`SELECT COUNT(*) as c FROM users WHERE role='client'`).get() as { c: number }).c,
@@ -369,8 +369,27 @@ export function createApp(dbArg?: Db) {
       conversations: (db.prepare(`SELECT COUNT(*) as c FROM conversations WHERE status IN ('new','waiting_admin','in_progress')`).get() as { c: number }).c
     };
     const expiring = db.prepare(`SELECT u.name, m.ends_at FROM memberships m JOIN users u ON u.id=m.client_id WHERE m.status='active' AND m.ends_at < ? ORDER BY m.ends_at LIMIT 20`).all(new Date(Date.now() + 14 * 86400000).toISOString());
-    const keySaved = req.query.key_saved === "1";
-    res.render("admin", { stats, expiring, aiKeyConfigured: isAiKeyConfigured(), keySaved });
+    res.render("admin", { stats, expiring });
+  });
+
+  app.get("/admin/settings", requireRole("admin"), (req, res) => {
+    const settings = db.prepare(`SELECT * FROM club_settings WHERE id = 1`).get() as {
+      club_name: string;
+      address: string;
+      hours: string;
+      phone: string;
+      email: string;
+      description: string;
+      booking_cancel_hours: number;
+      ai_welcome_text: string;
+    } | undefined;
+
+    res.render("admin_settings", {
+      settings,
+      aiKeyConfigured: isAiKeyConfigured(),
+      aiModel: getAiModel(),
+      saved: req.query.saved === "1"
+    });
   });
 
   app.post("/admin/settings/ai-key", requireRole("admin"), (req, res) => {
@@ -394,7 +413,72 @@ export function createApp(dbArg?: Db) {
       changeSummary: "ai_api_key_updated=true"
     });
 
-    res.redirect("/admin?key_saved=1");
+    res.redirect("/admin/settings?saved=1");
+  });
+
+  app.post("/admin/settings/ai-model", requireRole("admin"), (req, res) => {
+    const model = String(req.body.ai_model ?? "").trim();
+    if (model !== "GPT-6 Luna") {
+      res.status(400).send("Для MVP разрешена только модель GPT-6 Luna.");
+      return;
+    }
+
+    setAiModel(model);
+    writeAudit(db, {
+      actorType: "admin",
+      actorUserId: req.session.user!.id,
+      action: "update_ai_model",
+      entityType: "system_settings",
+      entityId: "ai_model",
+      changeSummary: `ai_model=${model}`
+    });
+
+    res.redirect("/admin/settings?saved=1");
+  });
+
+  app.post("/admin/settings/club", requireRole("admin"), (req, res) => {
+    const schema = z.object({
+      club_name: z.string().min(2).max(120),
+      address: z.string().min(3).max(200),
+      hours: z.string().min(3).max(80),
+      phone: z.string().min(5).max(40),
+      email: z.string().email(),
+      description: z.string().min(3).max(400),
+      booking_cancel_hours: z.coerce.number().int().min(1).max(48),
+      ai_welcome_text: z.string().min(3).max(300)
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).send("Некорректные данные настроек клуба.");
+      return;
+    }
+
+    db.prepare(`
+      UPDATE club_settings
+      SET club_name=?, address=?, hours=?, phone=?, email=?, description=?, booking_cancel_hours=?, ai_welcome_text=?
+      WHERE id=1
+    `).run(
+      parsed.data.club_name,
+      parsed.data.address,
+      parsed.data.hours,
+      parsed.data.phone,
+      parsed.data.email,
+      parsed.data.description,
+      parsed.data.booking_cancel_hours,
+      parsed.data.ai_welcome_text
+    );
+
+    writeAudit(db, {
+      actorType: "admin",
+      actorUserId: req.session.user!.id,
+      action: "update_club_settings",
+      entityType: "club_settings",
+      entityId: "1",
+      changeSummary: `hours=${parsed.data.hours}; phone_updated=true; email_updated=true`
+    });
+
+    res.redirect("/admin/settings?saved=1");
   });
   app.get("/admin/clients", requireRole("admin"), (req, res) => {
     const q = String(req.query.q ?? "").trim();
@@ -452,10 +536,14 @@ export function createApp(dbArg?: Db) {
   });
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, model: config.aiModel });
+    res.json({ ok: true, model: getAiModel(), aiKeyConfigured: isAiKeyConfigured() });
   });
 
   return app;
 }
+
+
+
+
 
 

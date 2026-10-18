@@ -22,7 +22,7 @@ body {
 .menu { display: flex; gap: 12px; align-items: center; }
 .menu a, .link-btn { color: #fff; text-decoration: none; background: transparent; border: none; cursor: pointer; }
 main { padding: 18px 0 36px; }
-.hero { padding: 16px; background: linear-gradient(135deg, #dbeafe, #eff6ff); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+.hero { padding: 20px; background-image: linear-gradient(rgba(8, 15, 34, 0.45), rgba(8, 15, 34, 0.45)), url("https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1600&q=80"); background-size: cover; background-position: center; color: #f8fafc; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -50,3 +50,7 @@ button.danger { background: var(--danger); }
 @media (max-width: 800px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
 }
+
+.latest-exchange { background: #eef6ff; border-color: #bfdbfe; }
+.msg.latest { outline: 2px solid #93c5fd; }
+

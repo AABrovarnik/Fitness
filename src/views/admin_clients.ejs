@@ -1,6 +1,6 @@
 <%- include('partials/header', { title: 'Клиенты', user }) %>
 <h1>Клиенты</h1>
-<nav class="tabs"><a href="/admin">Сводка</a><a href="/admin/clients">Клиенты</a><a href="/admin/conversations">Обращения</a></nav>
+<nav class="tabs"><a href="/admin">Сводка</a><a href="/admin/clients">Клиенты</a><a href="/admin/conversations">Обращения</a><a href="/admin/settings">Настройки</a></nav>
 <form method="get" action="/admin/clients" class="card row">
   <input name="q" value="<%= q %>" placeholder="Поиск по имени или контакту" />
   <button type="submit">Найти</button>
@@ -16,3 +16,4 @@
   </table>
 </div>
 <%- include('partials/footer') %>
+

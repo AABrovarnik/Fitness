@@ -5,9 +5,20 @@
 </nav>
 <div class="card">
   <p><strong>Тема:</strong> <%= conversation.topic %> · <strong>Статус:</strong> <%= conversation.status %> · <strong>Режим:</strong> <%= conversation.mode %></p>
-  <div class="chat-box">
-    <% messages.forEach((m) => { %>
-      <div class="msg <%= m.author_role %>">
+
+  <% if (messages.length > 1) { %>
+    <section class="card latest-exchange">
+      <h3>Последний обмен</h3>
+      <% const lastUser = [...messages].reverse().find(m => m.author_role === 'client'); %>
+      <% const lastReply = [...messages].reverse().find(m => m.author_role === 'ai' || m.author_role === 'admin'); %>
+      <% if (lastUser) { %><p><strong>Вы:</strong> <%= lastUser.content %></p><% } %>
+      <% if (lastReply) { %><p><strong>Ответ:</strong> <%= lastReply.content %></p><% } %>
+    </section>
+  <% } %>
+
+  <div id="chatBox" class="chat-box" tabindex="0">
+    <% messages.forEach((m, idx) => { %>
+      <div class="msg <%= m.author_role %> <%= idx === messages.length - 1 ? 'latest' : '' %>">
         <small><%= m.author_role %> · <%= new Date(m.created_at).toLocaleString('ru-RU') %></small>
         <p><%= m.content %></p>
       </div>
@@ -19,12 +30,21 @@
       <option value="trainer">AI-тренер</option>
       <option value="human">Позвать администратора</option>
     </select>
-    <textarea name="content" rows="3" placeholder="Ваш вопрос" required></textarea>
+    <textarea id="chatInput" name="content" rows="3" placeholder="Ваш вопрос" required></textarea>
     <button type="submit">Отправить</button>
   </form>
   <p id="chatResult" class="muted"></p>
 </div>
 <script>
+  const chatBox = document.getElementById('chatBox');
+  const chatInput = document.getElementById('chatInput');
+  if (chatBox) {
+    chatBox.scrollTop = chatBox.scrollHeight;
+    const latest = chatBox.querySelector('.msg.latest');
+    if (latest) latest.scrollIntoView({ block: 'end' });
+  }
+  chatInput?.focus();
+
   document.getElementById('chatForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());

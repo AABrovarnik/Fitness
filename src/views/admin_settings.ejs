@@ -1,0 +1,48 @@
+<%- include('partials/header', { title: 'Настройки', user }) %>
+<h1>Настройки клуба и AI</h1>
+<nav class="tabs">
+  <a href="/admin">Сводка</a>
+  <a href="/admin/clients">Клиенты</a>
+  <a href="/admin/conversations">Обращения</a>
+  <a href="/admin/settings">Настройки</a>
+</nav>
+
+<% if (saved) { %>
+  <p class="success">Настройки сохранены.</p>
+<% } %>
+
+<section class="card stack">
+  <h2>AI интеграция</h2>
+  <p><strong>Текущая модель:</strong> <%= aiModel %></p>
+  <p><strong>Статус AI_API_KEY:</strong> <%= aiKeyConfigured ? 'Настроен' : 'Не задан' %></p>
+
+  <form method="post" action="/admin/settings/ai-key" class="row">
+    <input type="password" name="ai_api_key" placeholder="Введите новый AI_API_KEY" autocomplete="new-password" required />
+    <button type="submit">Сохранить ключ</button>
+  </form>
+
+  <form method="post" action="/admin/settings/ai-model" class="row">
+    <select name="ai_model">
+      <option value="GPT-6 Luna" <%= aiModel === 'GPT-6 Luna' ? 'selected' : '' %>>GPT-6 Luna</option>
+    </select>
+    <button type="submit">Сохранить модель</button>
+  </form>
+  <p class="muted">В текущем MVP разрешена только модель GPT-6 Luna по требованиям ТЗ.</p>
+</section>
+
+<section class="card stack">
+  <h2>Контакты и время клуба</h2>
+  <form method="post" action="/admin/settings/club" class="stack">
+    <label>Название клуба<input name="club_name" value="<%= settings?.club_name || '' %>" required /></label>
+    <label>Адрес<input name="address" value="<%= settings?.address || '' %>" required /></label>
+    <label>Часы работы<input name="hours" value="<%= settings?.hours || '' %>" required /></label>
+    <label>Телефон<input name="phone" value="<%= settings?.phone || '' %>" required /></label>
+    <label>Email<input name="email" type="email" value="<%= settings?.email || '' %>" required /></label>
+    <label>Описание<textarea name="description" rows="2" required><%= settings?.description || '' %></textarea></label>
+    <label>Отмена записи, часы<input name="booking_cancel_hours" type="number" min="1" max="48" value="<%= settings?.booking_cancel_hours || 2 %>" required /></label>
+    <label>Приветствие AI<textarea name="ai_welcome_text" rows="2" required><%= settings?.ai_welcome_text || '' %></textarea></label>
+    <button type="submit">Сохранить настройки клуба</button>
+  </form>
+</section>
+
+<%- include('partials/footer') %>
