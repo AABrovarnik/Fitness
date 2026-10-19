@@ -44,7 +44,7 @@
       <% events.forEach((e) => { %>
         <tr>
           <td><%= e.title %> <small>(<%= e.type %>)</small></td>
-          <td><%= new Date(e.starts_at).toLocaleString('ru-RU') %></td>
+          <td><%= formatDateTime(e.starts_at) %></td>
           <td><%= e.trainer_name || '—' %></td>
           <td><%= e.resource_name || '—' %></td>
           <td><%= e.capacity %></td>

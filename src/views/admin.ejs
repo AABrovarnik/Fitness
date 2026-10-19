@@ -35,7 +35,7 @@
         <tr>
           <td><%= item.client_name %></td>
           <td><%= item.title %></td>
-          <td><%= new Date(item.starts_at).toLocaleString('ru-RU') %></td>
+          <td><%= formatDateTime(item.starts_at) %></td>
           <td><%= item.status %></td>
           <td>
             <button onclick="setBookingStatus('<%= item.id %>', 'completed')">Посещение было</button>

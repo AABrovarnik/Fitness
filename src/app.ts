@@ -73,6 +73,19 @@ export function createApp(dbArg?: Db) {
 
   app.use((req, res, next) => {
     res.locals.user = req.session.user;
+    res.locals.formatDateTime = (value: string | number | Date) => {
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      return new Intl.DateTimeFormat("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(date);
+    };
     next();
   });
 

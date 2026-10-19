@@ -19,7 +19,7 @@
   <div id="chatBox" class="chat-box" tabindex="0">
     <% messages.forEach((m, idx) => { %>
       <div class="msg <%= m.author_role %> <%= idx === messages.length - 1 ? 'latest' : '' %>">
-        <small><%= m.author_role %> · <%= new Date(m.created_at).toLocaleString('ru-RU') %></small>
+        <small><%= m.author_role %> · <%= formatDateTime(m.created_at) %></small>
         <p><%= m.content %></p>
       </div>
     <% }) %>
@@ -41,9 +41,14 @@
   const chatBox = document.getElementById('chatBox');
   const chatInput = document.getElementById('chatInput');
   if (chatBox) {
+    const messages = Array.from(chatBox.querySelectorAll('.msg'));
+    const lastClient = [...messages].reverse().find((node) => node.classList.contains('client'));
+    const lastReply = [...messages].reverse().find((node) => node.classList.contains('ai') || node.classList.contains('admin'));
+    const focusTarget = lastReply || lastClient || chatBox.querySelector('.msg.latest');
+    if (focusTarget) {
+      focusTarget.scrollIntoView({ block: 'nearest' });
+    }
     chatBox.scrollTop = chatBox.scrollHeight;
-    const latest = chatBox.querySelector('.msg.latest');
-    if (latest) latest.scrollIntoView({ block: 'end' });
   }
   chatInput?.focus();
 

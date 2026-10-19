@@ -13,7 +13,7 @@
         <% events.forEach((event) => { %>
           <tr>
             <td><%= event.title %></td>
-            <td><%= new Date(event.starts_at).toLocaleString('ru-RU') %></td>
+            <td><%= formatDateTime(event.starts_at) %></td>
             <td><%= event.capacity %></td>
             <td><button onclick="book('<%= event.id %>', this)">Записаться</button></td>
           </tr>
@@ -31,7 +31,7 @@
         <% mine.forEach((booking) => { %>
           <tr>
             <td><%= booking.title %></td>
-            <td><%= new Date(booking.starts_at).toLocaleString('ru-RU') %></td>
+            <td><%= formatDateTime(booking.starts_at) %></td>
             <td><%= booking.status %></td>
             <td>
               <% if (booking.status === 'booked') { %>

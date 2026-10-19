@@ -24,7 +24,7 @@
     <h2>Ближайшая запись</h2>
     <% if (nextBooking) { %>
       <p><strong><%= nextBooking.title %></strong></p>
-      <p><%= new Date(nextBooking.starts_at).toLocaleString('ru-RU') %></p>
+      <p><%= formatDateTime(nextBooking.starts_at) %></p>
     <% } else { %>
       <p>Нет ближайших записей.</p>
     <% } %>

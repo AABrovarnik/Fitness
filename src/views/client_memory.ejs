@@ -19,7 +19,7 @@
       <tr>
         <td><%= row.category %></td>
         <td><%= row.fact %></td>
-        <td><%= new Date(row.updated_at).toLocaleString('ru-RU') %></td>
+        <td><%= formatDateTime(row.updated_at) %></td>
         <td><button onclick="removeMemory('<%= row.id %>')">Удалить</button></td>
       </tr>
     <% }) %>

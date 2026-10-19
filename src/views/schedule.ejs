@@ -16,8 +16,8 @@
         <td><%= s.title %></td>
         <td><%= s.type %></td>
         <td><%= s.trainer_name || '—' %></td>
-        <td><%= new Date(s.starts_at).toLocaleString('ru-RU') %></td>
-        <td><%= new Date(s.ends_at).toLocaleString('ru-RU') %></td>
+        <td><%= formatDateTime(s.starts_at) %></td>
+        <td><%= formatDateTime(s.ends_at) %></td>
         <td><%= s.capacity %></td>
       </tr>
     <% }) %>
