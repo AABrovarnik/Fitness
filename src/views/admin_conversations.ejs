@@ -27,7 +27,7 @@
   async function reply(event, id) {
     event.preventDefault();
     const content = event.target.content.value;
-    const response = await fetch(`/api/admin/conversations/${id}/reply`, {
+    const response = await csrfFetch(`/api/admin/conversations/${id}/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content })

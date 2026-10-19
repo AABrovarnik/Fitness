@@ -22,4 +22,41 @@
     </table>
   </div>
 </section>
+<section>
+  <h2>Активные записи (подтверждение посещения)</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Клиент</th><th>Событие</th><th>Начало</th><th>Статус</th><th>Действие</th></tr></thead>
+      <tbody>
+      <% bookings.forEach((item) => { %>
+        <tr>
+          <td><%= item.client_name %></td>
+          <td><%= item.title %></td>
+          <td><%= new Date(item.starts_at).toLocaleString('ru-RU') %></td>
+          <td><%= item.status %></td>
+          <td>
+            <button onclick="setBookingStatus('<%= item.id %>', 'completed')">Посещение было</button>
+            <button class="danger" onclick="setBookingStatus('<%= item.id %>', 'no_show')">Не пришёл</button>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <p id="adminBookingResult" class="muted"></p>
+</section>
+<script>
+  async function setBookingStatus(id, status) {
+    const response = await csrfFetch(`/api/admin/bookings/${id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const result = await response.json();
+    document.getElementById('adminBookingResult').textContent = result.ok ? 'Статус обновлён.' : result.error;
+    if (result.ok) {
+      location.reload();
+    }
+  }
+</script>
 <%- include('partials/footer') %>

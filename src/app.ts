@@ -1,6 +1,7 @@
 import express from "express";
 import session from "express-session";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { config, getAiModel, isAiKeyConfigured, setAiApiKey, setAiModel } from "./config.js";
@@ -26,6 +27,45 @@ export function createApp(dbArg?: Db) {
       cookie: { maxAge: 1000 * 60 * 60 * 8 }
     })
   );
+
+  app.use((req, res, next) => {
+    const sessionRef = req.session as session.Session & Partial<session.SessionData> & { csrfToken?: string };
+    if (!sessionRef.csrfToken) {
+      sessionRef.csrfToken = randomBytes(24).toString("hex");
+    }
+    res.locals.csrfToken = sessionRef.csrfToken;
+    next();
+  });
+
+  app.use((req, res, next) => {
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      next();
+      return;
+    }
+
+    if (req.path === "/auth/login" || req.path === "/auth/register") {
+      next();
+      return;
+    }
+
+    const sessionRef = req.session as session.Session & Partial<session.SessionData> & { csrfToken?: string };
+    const expected = sessionRef.csrfToken;
+    const provided =
+      String(req.headers["x-csrf-token"] ?? "") ||
+      String((req.body as Record<string, unknown> | undefined)?._csrf ?? "");
+
+    if (!expected || !provided || expected !== provided) {
+      const wantsHtml = (req.headers.accept ?? "").includes("text/html");
+      if (wantsHtml) {
+        res.status(403).send("CSRF token missing or invalid.");
+        return;
+      }
+      res.status(403).json({ error: "CSRF token missing or invalid." });
+      return;
+    }
+
+    next();
+  });
 
   app.set("view engine", "ejs");
   app.set("views", path.resolve("src/views"));
@@ -329,7 +369,7 @@ export function createApp(dbArg?: Db) {
     res.render("client_chat", { conversation, messages });
   });
 
-  app.post("/api/client/chat/message", requireRole("client"), (req, res) => {
+  app.post("/api/client/chat/message", requireRole("client"), async (req, res) => {
     const schema = z.object({ conversation_id: z.string().min(3), content: z.string().min(1).max(1000), mode: z.enum(["ai", "trainer", "human"]) });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
@@ -350,10 +390,20 @@ export function createApp(dbArg?: Db) {
 
     let aiReply = "Сообщение передано администратору.";
     let newStatus = parsed.data.mode === "human" ? "waiting_admin" : "in_progress";
-
     if (parsed.data.mode !== "human") {
       const mode = parsed.data.mode === "trainer" ? "trainer" : "consultant";
-      aiReply = getAiReply(db, mode, parsed.data.content, req.session.user!.id, conv.id).text;
+      const settings = db.prepare(`SELECT club_name, ai_mode FROM club_settings WHERE id=1`).get() as { club_name: string; ai_mode: "faq_only" | "llm_faq_fallback" } | undefined;
+      const providerMode = settings?.ai_mode ?? "faq_only";
+      const response = await getAiReply(db, {
+        mode,
+        input: parsed.data.content,
+        userId: req.session.user!.id,
+        conversationId: conv.id,
+        providerMode,
+        clubName: settings?.club_name ?? "FitClub Personal"
+      });
+      const sourceLabel = response.source === "llm" ? "[LLM]" : response.source === "faq" ? "[FAQ]" : "[SAFE]";
+      aiReply = `${sourceLabel} ${response.text}`;
       db.prepare(`INSERT INTO messages(id, conversation_id, author_role, author_id, content, created_at) VALUES(?, ?, 'ai', NULL, ?, ?)`).run(nanoid(), conv.id, aiReply, nowIso());
     }
 
@@ -369,7 +419,93 @@ export function createApp(dbArg?: Db) {
       conversations: (db.prepare(`SELECT COUNT(*) as c FROM conversations WHERE status IN ('new','waiting_admin','in_progress')`).get() as { c: number }).c
     };
     const expiring = db.prepare(`SELECT u.name, m.ends_at FROM memberships m JOIN users u ON u.id=m.client_id WHERE m.status='active' AND m.ends_at < ? ORDER BY m.ends_at LIMIT 20`).all(new Date(Date.now() + 14 * 86400000).toISOString());
-    res.render("admin", { stats, expiring });
+    const bookings = db.prepare(`
+      SELECT b.id, b.status, b.client_id, s.title, s.starts_at, u.name as client_name
+      FROM bookings b
+      JOIN schedule_events s ON s.id = b.event_id
+      JOIN users u ON u.id = b.client_id
+      WHERE b.status = 'booked'
+      ORDER BY s.starts_at ASC
+      LIMIT 30
+    `).all();
+    res.render("admin", { stats, expiring, bookings });
+  });
+
+  app.post("/api/admin/bookings/:id/status", requireRole("admin"), (req, res) => {
+    const schema = z.object({ status: z.enum(["completed", "no_show", "canceled_by_admin"]) });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Некорректный статус." });
+      return;
+    }
+
+    const booking = db.prepare(`
+      SELECT b.id, b.client_id, b.event_id, b.status, s.starts_at
+      FROM bookings b
+      JOIN schedule_events s ON s.id = b.event_id
+      WHERE b.id = ?
+    `).get(req.params.id) as { id: string; client_id: string; event_id: string; status: string; starts_at: string } | undefined;
+
+    if (!booking) {
+      res.status(404).json({ error: "Запись не найдена." });
+      return;
+    }
+    if (booking.status !== "booked") {
+      res.status(400).json({ error: "Изменение доступно только для записей в статусе booked." });
+      return;
+    }
+
+    const targetStatus = parsed.data.status;
+
+    db.exec("BEGIN");
+    try {
+      if (targetStatus === "completed") {
+        const membership = db.prepare(`
+          SELECT id, visit_limit, visit_used
+          FROM memberships
+          WHERE client_id = ? AND status = 'active' AND starts_at <= ? AND ends_at >= ?
+          ORDER BY ends_at DESC
+          LIMIT 1
+        `).get(booking.client_id, booking.starts_at, booking.starts_at) as
+          | { id: string; visit_limit: number | null; visit_used: number }
+          | undefined;
+
+        if (!membership) {
+          db.exec("ROLLBACK");
+          res.status(400).json({ error: "Нет активного абонемента на момент посещения." });
+          return;
+        }
+        if (membership.visit_limit !== null && membership.visit_used >= membership.visit_limit) {
+          db.exec("ROLLBACK");
+          res.status(400).json({ error: "Лимит абонемента исчерпан." });
+          return;
+        }
+
+        db.prepare(`UPDATE memberships SET visit_used = visit_used + 1 WHERE id = ?`).run(membership.id);
+        db.prepare(`
+          INSERT INTO visits(id, client_id, booking_id, visited_at, source, comment)
+          VALUES(?, ?, ?, ?, 'admin_mark', 'Фактическое посещение подтверждено администратором')
+        `).run(nanoid(), booking.client_id, booking.id, nowIso());
+      }
+
+      db.prepare(`UPDATE bookings SET status=? WHERE id=?`).run(targetStatus, booking.id);
+
+      writeAudit(db, {
+        actorType: "admin",
+        actorUserId: req.session.user!.id,
+        action: "update_booking_status",
+        entityType: "booking",
+        entityId: booking.id,
+        targetUserId: booking.client_id,
+        changeSummary: `status=${targetStatus}`
+      });
+
+      db.exec("COMMIT");
+      res.json({ ok: true });
+    } catch {
+      db.exec("ROLLBACK");
+      res.status(500).json({ error: "Не удалось обновить статус записи." });
+    }
   });
 
   app.get("/admin/settings", requireRole("admin"), (req, res) => {
@@ -382,12 +518,14 @@ export function createApp(dbArg?: Db) {
       description: string;
       booking_cancel_hours: number;
       ai_welcome_text: string;
+      ai_mode: "faq_only" | "llm_faq_fallback";
     } | undefined;
 
     res.render("admin_settings", {
       settings,
       aiKeyConfigured: isAiKeyConfigured(),
       aiModel: getAiModel(),
+      aiMode: settings?.ai_mode ?? "faq_only",
       saved: req.query.saved === "1"
     });
   });
@@ -418,8 +556,8 @@ export function createApp(dbArg?: Db) {
 
   app.post("/admin/settings/ai-model", requireRole("admin"), (req, res) => {
     const model = String(req.body.ai_model ?? "").trim();
-    if (model !== "GPT-6 Luna") {
-      res.status(400).send("Для MVP разрешена только модель GPT-6 Luna.");
+    if (!model || model.length < 3 || model.length > 80) {
+      res.status(400).send("Некорректное имя модели.");
       return;
     }
 
@@ -436,6 +574,25 @@ export function createApp(dbArg?: Db) {
     res.redirect("/admin/settings?saved=1");
   });
 
+  app.post("/admin/settings/ai-mode", requireRole("admin"), (req, res) => {
+    const mode = String(req.body.ai_mode ?? "").trim();
+    if (mode !== "faq_only" && mode !== "llm_faq_fallback") {
+      res.status(400).send("Некорректный режим AI.");
+      return;
+    }
+
+    db.prepare(`UPDATE club_settings SET ai_mode=? WHERE id=1`).run(mode);
+    writeAudit(db, {
+      actorType: "admin",
+      actorUserId: req.session.user!.id,
+      action: "update_ai_mode",
+      entityType: "system_settings",
+      entityId: "ai_mode",
+      changeSummary: `ai_mode=${mode}`
+    });
+
+    res.redirect("/admin/settings?saved=1");
+  });
   app.post("/admin/settings/club", requireRole("admin"), (req, res) => {
     const schema = z.object({
       club_name: z.string().min(2).max(120),
@@ -536,11 +693,20 @@ export function createApp(dbArg?: Db) {
   });
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, model: getAiModel(), aiKeyConfigured: isAiKeyConfigured() });
+    res.json({ ok: true });
   });
 
   return app;
 }
+
+
+
+
+
+
+
+
+
 
 
 

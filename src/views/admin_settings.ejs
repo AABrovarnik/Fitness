@@ -16,23 +16,34 @@
   <p><strong>Текущая модель:</strong> <%= aiModel %></p>
   <p><strong>Статус AI_API_KEY:</strong> <%= aiKeyConfigured ? 'Настроен' : 'Не задан' %></p>
 
-  <form method="post" action="/admin/settings/ai-key" class="row">
+  <form method="post" action="/admin/settings/ai-key" class="row wrap">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="password" name="ai_api_key" placeholder="Введите новый AI_API_KEY" autocomplete="new-password" required />
     <button type="submit">Сохранить ключ</button>
   </form>
 
-  <form method="post" action="/admin/settings/ai-model" class="row">
-    <select name="ai_model">
-      <option value="GPT-6 Luna" <%= aiModel === 'GPT-6 Luna' ? 'selected' : '' %>>GPT-6 Luna</option>
-    </select>
+  <form method="post" action="/admin/settings/ai-model" class="row wrap">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input name="ai_model" value="<%= aiModel %>" placeholder="Например: gpt-5.6-luna" required />
     <button type="submit">Сохранить модель</button>
   </form>
-  <p class="muted">В текущем MVP разрешена только модель GPT-6 Luna по требованиям ТЗ.</p>
+
+  <form method="post" action="/admin/settings/ai-mode" class="row wrap">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <select name="ai_mode">
+      <option value="faq_only" <%= aiMode === 'faq_only' ? 'selected' : '' %>>FAQ-only</option>
+      <option value="llm_faq_fallback" <%= aiMode === 'llm_faq_fallback' ? 'selected' : '' %>>LLM + FAQ fallback</option>
+    </select>
+    <button type="submit">Сохранить режим</button>
+  </form>
+
+  <p class="muted">FAQ-only: ответы только из базы типовых ответов и правил. LLM + FAQ fallback: сначала запрос к OpenAI, при ошибке — безопасный fallback на FAQ.</p>
 </section>
 
 <section class="card stack">
   <h2>Контакты и время клуба</h2>
   <form method="post" action="/admin/settings/club" class="stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <label>Название клуба<input name="club_name" value="<%= settings?.club_name || '' %>" required /></label>
     <label>Адрес<input name="address" value="<%= settings?.address || '' %>" required /></label>
     <label>Часы работы<input name="hours" value="<%= settings?.hours || '' %>" required /></label>

@@ -28,7 +28,7 @@
   document.getElementById('historyForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());
-    const response = await fetch('/api/client/history', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const response = await csrfFetch('/api/client/history', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
     const result = await response.json();
     document.getElementById('historyResult').textContent = result.ok ? 'Запись добавлена.' : result.error;
     if (result.ok) location.reload();

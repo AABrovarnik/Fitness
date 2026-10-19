@@ -1,7 +1,7 @@
 import request from "supertest";
 import { describe, expect, test } from "vitest";
 import { createApp } from "../src/app.js";
-import { setupTestDb } from "./helpers.js";
+import { extractCsrfToken, setupTestDb } from "./helpers.js";
 
 async function login(agent: any, email: string) {
   await agent.post("/auth/login").type("form").send({ email, password: "11111" });
@@ -14,7 +14,8 @@ describe("memory and access isolation", () => {
     const agent = request.agent(app);
 
     await login(agent, "a@fitclub.local");
-    const add = await agent.post("/api/client/memory").send({ category: "time", fact: "Будни после 18:00" });
+    const csrfToken = extractCsrfToken(await agent.get("/client"));
+    const add = await agent.post("/api/client/memory").set("X-CSRF-Token", csrfToken).send({ category: "time", fact: "Будни после 18:00" });
     expect(add.status).toBe(200);
 
     const page = await agent.get("/client/memory");
@@ -33,7 +34,8 @@ describe("memory and access isolation", () => {
 
     const agentA = request.agent(app);
     await login(agentA, "a@fitclub.local");
-    const response = await agentA.delete("/api/client/memory/mem-b");
+    const csrfToken = extractCsrfToken(await agentA.get("/client"));
+    const response = await agentA.delete("/api/client/memory/mem-b").set("X-CSRF-Token", csrfToken);
     expect(response.status).toBe(404);
 
     const still = db.prepare(`SELECT id FROM user_memory WHERE id='mem-b'`).get() as { id: string } | undefined;

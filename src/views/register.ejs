@@ -3,6 +3,7 @@
   <h1>Регистрация клиента</h1>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/auth/register" class="card stack">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input name="name" placeholder="Имя" required />
     <input name="email" type="email" placeholder="Email" required />
     <input name="phone" placeholder="Телефон" required />

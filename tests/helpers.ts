@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { nanoid } from "nanoid";
 import { runMigrations, type Db } from "../src/db/db.js";
 import { hashPassword } from "../src/services/auth.js";
+import type { Response } from "supertest";
 
 export interface SeededUsers {
   adminId: string;
@@ -54,5 +55,13 @@ export function setupTestDb(): { db: Db; users: SeededUsers } {
   `).run(eventStart, eventEnd, trainerId);
 
   return { db, users: { adminId, clientAId, clientBId } };
+}
+
+export function extractCsrfToken(page: Response): string {
+  const match = page.text.match(/meta name="csrf-token" content="([^"]+)"/i);
+  if (!match?.[1]) {
+    throw new Error("CSRF token not found in page response");
+  }
+  return match[1];
 }
 

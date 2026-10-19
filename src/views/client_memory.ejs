@@ -29,21 +29,21 @@
   document.getElementById('memoryForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());
-    const response = await fetch('/api/client/memory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const response = await csrfFetch('/api/client/memory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
     const result = await response.json();
     document.getElementById('memoryResult').textContent = result.ok ? 'Сохранено.' : result.error;
     if (result.ok) location.reload();
   });
 
   async function removeMemory(id) {
-    const response = await fetch(`/api/client/memory/${id}`, { method: 'DELETE' });
+    const response = await csrfFetch(`/api/client/memory/${id}`, { method: 'DELETE' });
     const result = await response.json();
     document.getElementById('memoryResult').textContent = result.ok ? 'Удалено.' : result.error;
     if (result.ok) location.reload();
   }
 
   async function clearAll() {
-    const response = await fetch('/api/client/memory', { method: 'DELETE' });
+    const response = await csrfFetch('/api/client/memory', { method: 'DELETE' });
     const result = await response.json();
     document.getElementById('memoryResult').textContent = result.ok ? 'Память очищена.' : result.error;
     if (result.ok) location.reload();

@@ -5,6 +5,7 @@
 </nav>
 <% if (saved) { %><p class="success">Профиль сохранён.</p><% } %>
 <form method="post" action="/client/profile" class="card stack">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
   <label>Имя<input value="<%= profile.name %>" disabled /></label>
   <label>Email<input value="<%= profile.email %>" disabled /></label>
   <label>Контакт<input value="<%= profile.phone || '' %>" disabled /></label>

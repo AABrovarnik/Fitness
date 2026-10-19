@@ -49,7 +49,7 @@
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());
     payload.conversation_id = '<%= conversation.id %>';
-    const response = await fetch('/api/client/chat/message', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+    const response = await csrfFetch('/api/client/chat/message', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
     const result = await response.json();
     document.getElementById('chatResult').textContent = result.ok ? 'Сообщение отправлено.' : result.error;
     if (result.ok) location.reload();

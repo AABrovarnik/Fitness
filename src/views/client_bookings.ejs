@@ -48,7 +48,7 @@
 <p id="bookingResult" class="muted"></p>
 <script>
   async function book(eventId) {
-    const response = await fetch('/api/client/bookings', {
+    const response = await csrfFetch('/api/client/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event_id: eventId })
@@ -59,7 +59,7 @@
   }
 
   async function cancelBooking(id) {
-    const response = await fetch(`/api/client/bookings/${id}/cancel`, { method: 'POST' });
+    const response = await csrfFetch(`/api/client/bookings/${id}/cancel`, { method: 'POST' });
     const payload = await response.json();
     document.getElementById('bookingResult').textContent = payload.ok ? 'Запись отменена.' : payload.error;
     if (payload.ok) location.reload();
