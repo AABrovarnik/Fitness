@@ -257,20 +257,38 @@ export function createApp(dbArg?: Db) {
     const wantsBooking = /(запис|пробн|посет|купить|оплат|абонемент)/i.test(normalized);
     const wantsTrainer = /(нагруз|план|програм|тренер|силов|кардио|похуд|набор)/i.test(normalized);
 
+    const currentUser = req.session.user;
+    const isClient = currentUser?.role === "client";
+
     let scenario = "Если захотите, после регистрации я помогу продолжить консультацию в личном кабинете.";
     let route = "/register";
     if (wantsBooking) {
-      scenario = "Похоже, вы готовы записаться: после регистрации я передам вас администратору для подтверждения слота.";
-      route = "/register?intent=booking";
+      if (isClient) {
+        scenario = "Готово: передаю вас в чат с администратором для подтверждения записи.";
+        route = "/client/chat?mode=human";
+      } else {
+        scenario = "Похоже, вы готовы записаться: после регистрации я передам вас администратору для подтверждения слота.";
+        route = "/register?intent=booking";
+      }
     } else if (wantsTrainer) {
-      scenario = "Похоже, вы хотите подобрать нагрузки: после регистрации направим к тренеру для персонального плана.";
-      route = "/register?intent=trainer";
+      if (isClient) {
+        scenario = "Переходим к подбору нагрузок: откройте консультацию с AI-тренером.";
+        route = "/client/chat?mode=trainer";
+      } else {
+        scenario = "Похоже, вы хотите подобрать нагрузки: после регистрации направим к тренеру для персонального плана.";
+        route = "/register?intent=trainer";
+      }
+    } else if (isClient) {
+      scenario = "Продолжаем консультацию в вашем кабинете с AI-консультантом.";
+      route = "/client/chat?mode=ai";
     } else {
       scenario = "По фитнес-вопросам можно продолжать консультации с AI-консультантом, лучше после регистрации для сохранения контекста.";
       route = "/register?intent=consult";
     }
 
-    const teaser = "Можем присылать новые тарифы и интересные программы — лучше зарегистрироваться, чтобы не потерять рекомендации.";
+    const teaser = isClient
+      ? "Если захотите, подключу тренера или администратора в один клик прямо из чата."
+      : "Можем присылать новые тарифы и интересные программы — лучше зарегистрироваться, чтобы не потерять рекомендации.";
     const finalReply = `${response.text}\n\n${scenario}\n${teaser}`;
 
     db.prepare(`INSERT INTO messages(id, conversation_id, author_role, author_id, content, created_at) VALUES(?, ?, 'ai', NULL, ?, ?)`)
@@ -516,7 +534,10 @@ export function createApp(dbArg?: Db) {
     }
 
     const messages = db.prepare(`SELECT * FROM messages WHERE conversation_id=? ORDER BY created_at`).all(conversation.id);
-    res.render("client_chat", { conversation, messages });
+    const preferredMode = ["ai", "trainer", "human"].includes(String(req.query.mode ?? ""))
+      ? String(req.query.mode)
+      : conversation.mode;
+    res.render("client_chat", { conversation, messages, preferredMode });
   });
 
   app.post("/api/client/chat/message", requireRole("client"), async (req, res) => {

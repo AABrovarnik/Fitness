@@ -5,7 +5,7 @@
   <a href="/offers">Тарифы</a>
   <a href="/trainers">Тренеры</a>
   <a href="/schedule">Расписание</a>
-  <a href="/register?intent=booking">Готов записаться</a>
+  <a href="<%= user?.role === 'client' ? '/client/chat?mode=human' : '/register?intent=booking' %>">Готов записаться</a>
 </nav>
 <div class="table-wrap">
   <table>
@@ -24,5 +24,5 @@
     </tbody>
   </table>
 </div>
-<p class="muted">Для записи и персональных рекомендаций зарегистрируйтесь в кабинете.</p>
+<p class="muted"><%= user?.role === 'client' ? 'Для записи откройте консультацию с администратором в вашем чате.' : 'Для записи и персональных рекомендаций зарегистрируйтесь в кабинете.' %></p>
 <%- include('partials/footer') %>

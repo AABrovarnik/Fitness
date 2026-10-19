@@ -27,9 +27,9 @@
   <form id="chatForm" class="stack">
     <label for="chatMode">Режим чата</label>
     <select id="chatMode" name="mode" aria-label="Режим чата">
-      <option value="ai">AI-консультант</option>
-      <option value="trainer">AI-тренер</option>
-      <option value="human">Позвать администратора</option>
+      <option value="ai" <%= preferredMode === 'ai' ? 'selected' : '' %>>AI-консультант</option>
+      <option value="trainer" <%= preferredMode === 'trainer' ? 'selected' : '' %>>AI-тренер</option>
+      <option value="human" <%= preferredMode === 'human' ? 'selected' : '' %>>Позвать администратора</option>
     </select>
     <label for="chatInput">Ваш вопрос</label>
     <textarea id="chatInput" name="content" rows="3" placeholder="Ваш вопрос" required></textarea>

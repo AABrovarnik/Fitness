@@ -5,7 +5,7 @@
   <a href="/offers">Тарифы</a>
   <a href="/trainers">Тренеры</a>
   <a href="/schedule">Расписание</a>
-  <a href="/register?intent=trainer">Подобрать нагрузки</a>
+  <a href="<%= user?.role === 'client' ? '/client/chat?mode=trainer' : '/register?intent=trainer' %>">Подобрать нагрузки</a>
 </nav>
 <section class="grid-2">
   <% trainers.forEach((t) => { %>
@@ -13,7 +13,7 @@
       <h2><%= t.name %></h2>
       <p><strong><%= t.specialization %></strong></p>
       <p class="muted"><%= t.description %></p>
-      <a class="btn secondary" href="/register?intent=trainer">Обсудить план с тренером</a>
+      <a class="btn secondary" href="<%= user?.role === 'client' ? '/client/chat?mode=trainer' : '/register?intent=trainer' %>">Обсудить план с тренером</a>
     </article>
   <% }) %>
 </section>

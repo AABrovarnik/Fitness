@@ -12,7 +12,7 @@
       </div>
       <div class="hero-actions">
         <a class="btn" href="#lead">Записаться на пробную</a>
-        <a class="btn secondary" href="/register">Зарегистрироваться</a>
+        <a class="btn secondary" href="<%= user?.role === 'client' ? '/client' : '/register' %>"><%= user?.role === 'client' ? 'Перейти в кабинет' : 'Зарегистрироваться' %></a>
       </div>
       <p class="hero-note">Все цены и данные в этой версии — демонстрационные.</p>
     </section>
@@ -43,7 +43,7 @@
       <a class="btn secondary" href="/offers">Тарифы</a>
       <a class="btn secondary" href="/trainers">Тренеры</a>
       <a class="btn secondary" href="/schedule">Расписание</a>
-      <a class="btn secondary" href="/register">Регистрация</a>
+      <a class="btn secondary" href="<%= user?.role === 'client' ? '/client' : '/register' %>"><%= user?.role === 'client' ? 'Кабинет' : 'Регистрация' %></a>
       <p class="muted">Готовы записаться — направим к администратору. Нужно выбрать нагрузки — подскажем тренера.</p>
     </section>
 

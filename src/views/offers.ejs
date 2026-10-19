@@ -6,7 +6,7 @@
   <a href="/offers">Тарифы</a>
   <a href="/trainers">Тренеры</a>
   <a href="/schedule">Расписание</a>
-  <a href="/register">Регистрация</a>
+  <a href="<%= user?.role === 'client' ? '/client' : '/register' %>"><%= user?.role === 'client' ? 'Кабинет' : 'Регистрация' %></a>
 </nav>
 <section class="grid-3">
   <% types.forEach((t) => { %>
@@ -15,7 +15,7 @@
       <p><%= t.description %></p>
       <p class="price"><%= t.demo_price %> ₽</p>
       <p class="muted">Срок: <%= t.duration_days %> дней · Лимит: <%= t.visit_limit ?? 'безлимит' %></p>
-      <a class="btn" href="/register?intent=booking">Выбрать тариф</a>
+      <a class="btn" href="<%= user?.role === 'client' ? '/client/chat?mode=human' : '/register?intent=booking' %>">Выбрать тариф</a>
     </article>
   <% }) %>
 </section>
