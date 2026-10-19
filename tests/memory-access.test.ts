@@ -21,6 +21,9 @@ describe("memory and access isolation", () => {
     const page = await agent.get("/client/memory");
     expect(page.status).toBe(200);
     expect(page.text).toContain("Будни после 18:00");
+
+    const audit = db.prepare(`SELECT COUNT(*) as c FROM audit_logs WHERE actor_type='client' AND action IN ('create_memory','view_memory')`).get() as { c: number };
+    expect(audit.c).toBeGreaterThan(0);
   });
 
   test("client A cannot delete memory of client B", async () => {

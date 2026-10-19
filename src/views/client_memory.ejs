@@ -4,11 +4,13 @@
   <a href="/client">Обзор</a><a href="/client/profile">Профиль</a><a href="/client/bookings">Записи</a><a href="/client/history">История</a><a href="/client/memory">Память AI</a><a href="/client/chat">Чат</a>
 </nav>
 <form id="memoryForm" class="card grid-3">
-  <input name="category" placeholder="Категория" required />
-  <input name="fact" placeholder="Короткий факт" required />
-  <button type="submit">Сохранить</button>
+  <label class="sr-only" for="memoryCategory">Категория</label>
+  <input id="memoryCategory" name="category" aria-label="Категория" placeholder="Категория" required />
+  <label class="sr-only" for="memoryFact">Короткий факт</label>
+  <input id="memoryFact" name="fact" aria-label="Короткий факт" placeholder="Короткий факт" required />
+  <button id="memorySubmit" type="submit">Сохранить</button>
 </form>
-<p id="memoryResult" class="muted"></p>
+<p id="memoryResult" class="muted" aria-live="polite"></p>
 <div class="table-wrap">
   <table>
     <thead><tr><th>Категория</th><th>Факт</th><th>Обновлено</th><th></th></tr></thead>
@@ -29,10 +31,22 @@
   document.getElementById('memoryForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target).entries());
-    const response = await csrfFetch('/api/client/memory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
-    const result = await response.json();
-    document.getElementById('memoryResult').textContent = result.ok ? 'Сохранено.' : result.error;
-    if (result.ok) location.reload();
+    const submitButton = document.getElementById('memorySubmit');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Сохранение...';
+    }
+    try {
+      const response = await csrfFetch('/api/client/memory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+      const result = await response.json();
+      document.getElementById('memoryResult').textContent = result.ok ? 'Сохранено.' : result.error;
+      if (result.ok) location.reload();
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Сохранить';
+      }
+    }
   });
 
   async function removeMemory(id) {

@@ -15,7 +15,7 @@
             <td><%= event.title %></td>
             <td><%= new Date(event.starts_at).toLocaleString('ru-RU') %></td>
             <td><%= event.capacity %></td>
-            <td><button onclick="book('<%= event.id %>')">Записаться</button></td>
+            <td><button onclick="book('<%= event.id %>', this)">Записаться</button></td>
           </tr>
         <% }) %>
         </tbody>
@@ -35,7 +35,7 @@
             <td><%= booking.status %></td>
             <td>
               <% if (booking.status === 'booked') { %>
-                <button onclick="cancelBooking('<%= booking.id %>')">Отменить</button>
+                <button onclick="cancelBooking('<%= booking.id %>', this)">Отменить</button>
               <% } %>
             </td>
           </tr>
@@ -45,24 +45,46 @@
     </div>
   </article>
 </section>
-<p id="bookingResult" class="muted"></p>
+<p id="bookingResult" class="muted" aria-live="polite"></p>
 <script>
-  async function book(eventId) {
-    const response = await csrfFetch('/api/client/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_id: eventId })
-    });
-    const payload = await response.json();
-    document.getElementById('bookingResult').textContent = payload.ok ? 'Запись создана.' : payload.error;
-    if (payload.ok) location.reload();
+  async function book(eventId, button) {
+    if (button) {
+      button.disabled = true;
+      button.textContent = '...';
+    }
+    try {
+      const response = await csrfFetch('/api/client/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId })
+      });
+      const payload = await response.json();
+      document.getElementById('bookingResult').textContent = payload.ok ? 'Запись создана.' : payload.error;
+      if (payload.ok) location.reload();
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'Записаться';
+      }
+    }
   }
 
-  async function cancelBooking(id) {
-    const response = await csrfFetch(`/api/client/bookings/${id}/cancel`, { method: 'POST' });
-    const payload = await response.json();
-    document.getElementById('bookingResult').textContent = payload.ok ? 'Запись отменена.' : payload.error;
-    if (payload.ok) location.reload();
+  async function cancelBooking(id, button) {
+    if (button) {
+      button.disabled = true;
+      button.textContent = '...';
+    }
+    try {
+      const response = await csrfFetch(`/api/client/bookings/${id}/cancel`, { method: 'POST' });
+      const payload = await response.json();
+      document.getElementById('bookingResult').textContent = payload.ok ? 'Запись отменена.' : payload.error;
+      if (payload.ok) location.reload();
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'Отменить';
+      }
+    }
   }
 </script>
 <%- include('partials/footer') %>

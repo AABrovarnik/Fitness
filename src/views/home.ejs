@@ -2,50 +2,73 @@
 
 <section class="hero">
   <h1><%= settings?.club_name ?? 'FitClub Personal' %></h1>
-  <p><%= settings?.description ?? 'Демо-прототип фитнес-клуба' %></p>
-  <p><strong>Адрес:</strong> <%= settings?.address ?? '—' %> · <strong>Часы:</strong> <%= settings?.hours ?? '—' %></p>
+  <p><%= settings?.description ?? 'Фитнес-клуб с современным залом, групповыми занятиями и персональным сопровождением.' %></p>
+  <div class="badge-row">
+    <span class="badge">Адрес: <%= settings?.address ?? '—' %></span>
+    <span class="badge">Часы: <%= settings?.hours ?? '—' %></span>
+    <span class="badge">Демо-режим</span>
+  </div>
+  <div class="hero-actions">
+    <a class="btn" href="#lead">Записаться на пробную</a>
+    <a class="btn secondary" href="#schedule">Посмотреть расписание</a>
+  </div>
+  <p class="hero-note">Все цены и данные в этой версии — демонстрационные.</p>
 </section>
 
-<section>
-  <h2>Лид-магнит</h2>
+<section id="lead">
+  <h2 class="section-title">Быстрый старт в клубе</h2>
+  <p class="section-subtitle">Оставьте контакт — и администратор предложит ближайшее время для старта.</p>
   <form id="leadForm" class="card grid-3">
-    <input name="name" placeholder="Ваше имя" required />
-    <input name="contact" placeholder="Телефон или email" required />
-    <select name="interest">
+    <label class="sr-only" for="leadName">Ваше имя</label>
+    <input id="leadName" name="name" aria-label="Ваше имя" placeholder="Ваше имя" required />
+    <label class="sr-only" for="leadContact">Телефон или email</label>
+    <input id="leadContact" name="contact" aria-label="Телефон или email" placeholder="Телефон или email" required />
+    <label class="sr-only" for="leadInterest">Тип запроса</label>
+    <select id="leadInterest" name="interest" aria-label="Тип запроса">
       <option value="Пробная тренировка">Пробная тренировка</option>
       <option value="Консультация с тренером">Консультация с тренером</option>
       <option value="Стартовая неделя">Стартовая неделя</option>
     </select>
-    <button type="submit">Отправить заявку</button>
+    <button id="leadSubmit" type="submit">Отправить заявку</button>
   </form>
-  <p id="leadResult" class="muted"></p>
+  <p id="leadResult" class="muted" aria-live="polite"></p>
+</section>
+
+<section>
+  <h2 class="section-title">Демонстрационные тарифы</h2>
+  <div class="grid-3">
+    <% types.forEach((t) => { %>
+      <article class="card offer-card">
+        <h3><%= t.name %></h3>
+        <p><%= t.description %></p>
+        <p class="price"><%= t.demo_price %> ₽</p>
+        <p class="muted">Демо-стоимость, уточняйте у администратора</p>
+      </article>
+    <% }) %>
+  </div>
 </section>
 
 <section class="grid-2">
   <div>
-    <h2>Тренеры</h2>
+    <h2 class="section-title">Тренерский состав</h2>
     <% trainers.forEach((t) => { %>
       <article class="card">
         <h3><%= t.name %></h3>
         <p><strong><%= t.specialization %></strong></p>
-        <p><%= t.description %></p>
+        <p class="muted"><%= t.description %></p>
       </article>
     <% }) %>
   </div>
-  <div>
-    <h2>Тарифы (демо)</h2>
-    <% types.forEach((t) => { %>
-      <article class="card">
-        <h3><%= t.name %></h3>
-        <p><%= t.description %></p>
-        <p><strong><%= t.demo_price %> ₽</strong> · демонстрационно</p>
-      </article>
-    <% }) %>
+  <div class="quick-metrics">
+    <h2 class="section-title">Почему удобно</h2>
+    <article class="card"><h3>Гибкий график</h3><p class="muted">Утро, день и вечер — выбирайте комфортный слот.</p></article>
+    <article class="card"><h3>Прозрачная запись</h3><p class="muted">Система не даст записаться при конфликте времени или отсутствии мест.</p></article>
+    <article class="card"><h3>Поддержка в чате</h3><p class="muted">AI и администратор доступны в личном кабинете.</p></article>
   </div>
 </section>
 
-<section>
-  <h2>Ближайшее расписание</h2>
+<section id="schedule">
+  <h2 class="section-title">Ближайшее расписание</h2>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Занятие</th><th>Начало</th><th>Окончание</th><th>Мест</th></tr></thead>
@@ -67,12 +90,24 @@
   document.getElementById('leadForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.target;
+    const submitButton = document.getElementById('leadSubmit');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Отправка...';
+    }
     const payload = Object.fromEntries(new FormData(form).entries());
-    const result = await postForm('/api/public/lead', payload);
-    document.getElementById('leadResult').textContent = result.ok
-      ? 'Спасибо! Заявка создана и передана администратору.'
-      : (result.error || 'Ошибка отправки');
-    if (result.ok) form.reset();
+    try {
+      const result = await postForm('/api/public/lead', payload);
+      document.getElementById('leadResult').textContent = result.ok
+        ? 'Спасибо! Заявка создана и передана администратору.'
+        : (result.error || 'Ошибка отправки');
+      if (result.ok) form.reset();
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Отправить заявку';
+      }
+    }
   });
 </script>
 

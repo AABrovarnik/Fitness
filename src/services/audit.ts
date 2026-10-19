@@ -3,7 +3,7 @@ import type { Db } from "../db/db.js";
 import { nowIso } from "../db/db.js";
 
 interface AuditInput {
-  actorType: "admin" | "system";
+  actorType: "admin" | "client" | "system";
   actorUserId?: string;
   action: string;
   entityType: string;

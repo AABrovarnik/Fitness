@@ -22,19 +22,31 @@
   </tbody>
 </table>
 </div>
-<p id="adminConvResult" class="muted"></p>
+<p id="adminConvResult" class="muted" aria-live="polite"></p>
 <script>
   async function reply(event, id) {
     event.preventDefault();
+    const submit = event.target.querySelector('button[type="submit"]');
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = '...';
+    }
     const content = event.target.content.value;
-    const response = await csrfFetch(`/api/admin/conversations/${id}/reply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
-    });
-    const result = await response.json();
-    document.getElementById('adminConvResult').textContent = result.ok ? 'Ответ отправлен.' : result.error;
-    if (result.ok) event.target.reset();
+    try {
+      const response = await csrfFetch(`/api/admin/conversations/${id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      const result = await response.json();
+      document.getElementById('adminConvResult').textContent = result.ok ? 'Ответ отправлен.' : result.error;
+      if (result.ok) event.target.reset();
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = 'Отправить';
+      }
+    }
   }
 </script>
 <%- include('partials/footer') %>

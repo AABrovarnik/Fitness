@@ -294,6 +294,15 @@ export function createApp(dbArg?: Db) {
 
   app.get("/client/memory", requireRole("client"), (req, res) => {
     const rows = db.prepare(`SELECT * FROM user_memory WHERE user_id=? ORDER BY updated_at DESC`).all(req.session.user!.id);
+    writeAudit(db, {
+      actorType: "client",
+      actorUserId: req.session.user!.id,
+      action: "view_memory",
+      entityType: "user_memory",
+      entityId: undefined,
+      targetUserId: req.session.user!.id,
+      changeSummary: `rows=${rows.length}`
+    });
     res.render("client_memory", { rows });
   });
 
@@ -316,6 +325,15 @@ export function createApp(dbArg?: Db) {
       INSERT INTO user_memory(id, user_id, category, fact, source, state, created_at, updated_at)
       VALUES(?, ?, ?, ?, 'manual', 'confirmed', ?, ?)
     `).run(id, req.session.user!.id, parsed.data.category, parsed.data.fact, nowIso(), nowIso());
+    writeAudit(db, {
+      actorType: "client",
+      actorUserId: req.session.user!.id,
+      action: "create_memory",
+      entityType: "user_memory",
+      entityId: id,
+      targetUserId: req.session.user!.id,
+      changeSummary: `category=${parsed.data.category}`
+    });
     res.json({ ok: true, id });
   });
 
@@ -334,6 +352,15 @@ export function createApp(dbArg?: Db) {
     }
 
     db.prepare(`UPDATE user_memory SET category=?, fact=?, updated_at=? WHERE id=?`).run(parsed.data.category, parsed.data.fact, nowIso(), req.params.id);
+    writeAudit(db, {
+      actorType: "client",
+      actorUserId: req.session.user!.id,
+      action: "update_memory",
+      entityType: "user_memory",
+      entityId: req.params.id,
+      targetUserId: req.session.user!.id,
+      changeSummary: `category=${parsed.data.category}`
+    });
     res.json({ ok: true });
   });
 
@@ -344,11 +371,30 @@ export function createApp(dbArg?: Db) {
       return;
     }
     db.prepare(`DELETE FROM user_memory WHERE id=?`).run(req.params.id);
+    writeAudit(db, {
+      actorType: "client",
+      actorUserId: req.session.user!.id,
+      action: "delete_memory",
+      entityType: "user_memory",
+      entityId: req.params.id,
+      targetUserId: req.session.user!.id,
+      changeSummary: "single_record_deleted"
+    });
     res.json({ ok: true });
   });
 
   app.delete("/api/client/memory", requireRole("client"), (req, res) => {
+    const count = (db.prepare(`SELECT COUNT(*) as c FROM user_memory WHERE user_id=?`).get(req.session.user!.id) as { c: number }).c;
     db.prepare(`DELETE FROM user_memory WHERE user_id=?`).run(req.session.user!.id);
+    writeAudit(db, {
+      actorType: "client",
+      actorUserId: req.session.user!.id,
+      action: "clear_memory",
+      entityType: "user_memory",
+      entityId: undefined,
+      targetUserId: req.session.user!.id,
+      changeSummary: `deleted=${count}`
+    });
     res.json({ ok: true });
   });
 
