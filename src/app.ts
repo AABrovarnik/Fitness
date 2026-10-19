@@ -82,10 +82,32 @@ export function createApp(dbArg?: Db) {
 
   app.get("/", (_req, res) => {
     const settings = db.prepare(`SELECT * FROM club_settings WHERE id = 1`).get() as Record<string, unknown> | undefined;
-    const trainers = db.prepare(`SELECT name, specialization, description FROM trainers WHERE active = 1 LIMIT 4`).all();
-    const schedule = db.prepare(`SELECT title, starts_at, ends_at, capacity FROM schedule_events WHERE status = 'active' ORDER BY starts_at LIMIT 8`).all();
-    const types = db.prepare(`SELECT name, description, demo_price FROM membership_types WHERE active = 1`).all();
-    res.render("home", { settings, trainers, schedule, types });
+    res.render("home", { settings });
+  });
+
+  app.get("/offers", (_req, res) => {
+    const settings = db.prepare(`SELECT club_name FROM club_settings WHERE id = 1`).get() as { club_name: string } | undefined;
+    const types = db.prepare(`SELECT name, description, demo_price, duration_days, visit_limit FROM membership_types WHERE active = 1 ORDER BY demo_price ASC`).all();
+    res.render("offers", { settings, types });
+  });
+
+  app.get("/trainers", (_req, res) => {
+    const settings = db.prepare(`SELECT club_name FROM club_settings WHERE id = 1`).get() as { club_name: string } | undefined;
+    const trainers = db.prepare(`SELECT name, specialization, description FROM trainers WHERE active = 1 ORDER BY name`).all();
+    res.render("trainers", { settings, trainers });
+  });
+
+  app.get("/schedule", (_req, res) => {
+    const settings = db.prepare(`SELECT club_name FROM club_settings WHERE id = 1`).get() as { club_name: string } | undefined;
+    const schedule = db.prepare(`
+      SELECT s.title, s.type, s.starts_at, s.ends_at, s.capacity, t.name as trainer_name
+      FROM schedule_events s
+      LEFT JOIN trainers t ON t.id = s.trainer_id
+      WHERE s.status = 'active'
+      ORDER BY s.starts_at
+      LIMIT 60
+    `).all();
+    res.render("schedule", { settings, schedule });
   });
 
   app.get("/login", (_req, res) => res.render("login", { error: null }));
@@ -174,6 +196,75 @@ export function createApp(dbArg?: Db) {
       .run(nanoid(), convId, `Новая заявка: ${parsed.data.name}. Интерес: ${parsed.data.interest}`, now);
 
     res.json({ ok: true });
+  });
+
+  app.post("/api/public/chat", async (req, res) => {
+    const schema = z.object({ content: z.string().min(1).max(1000) });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Некорректное сообщение." });
+      return;
+    }
+
+    const settings = db.prepare(`SELECT club_name, ai_mode FROM club_settings WHERE id=1`).get() as
+      | { club_name: string; ai_mode: "faq_only" | "llm_faq_fallback" }
+      | undefined;
+
+    const sessionRef = req.session as session.Session & Partial<session.SessionData> & { publicConversationId?: string };
+    let conversationId = sessionRef.publicConversationId;
+    let conversation = conversationId
+      ? (db.prepare(`SELECT id FROM conversations WHERE id=? AND client_id IS NULL`).get(conversationId) as { id: string } | undefined)
+      : undefined;
+
+    if (!conversation) {
+      conversationId = nanoid();
+      const now = nowIso();
+      db.prepare(`
+        INSERT INTO conversations(id, client_id, guest_contact, topic, status, mode, created_at, updated_at)
+        VALUES(?, NULL, NULL, 'Публичная консультация', 'in_progress', 'ai', ?, ?)
+      `).run(conversationId, now, now);
+      sessionRef.publicConversationId = conversationId;
+      conversation = { id: conversationId };
+    }
+
+    const now = nowIso();
+    db.prepare(`INSERT INTO messages(id, conversation_id, author_role, author_id, content, created_at) VALUES(?, ?, 'guest', NULL, ?, ?)`)
+      .run(nanoid(), conversation.id, parsed.data.content, now);
+
+    const response = await getAiReply(db, {
+      mode: "consultant",
+      input: parsed.data.content,
+      userId: `guest:${conversation.id}`,
+      conversationId: conversation.id,
+      providerMode: settings?.ai_mode ?? "faq_only",
+      clubName: settings?.club_name ?? "FitClub Personal"
+    });
+
+    const normalized = parsed.data.content.toLowerCase();
+    const wantsBooking = /(запис|пробн|посет|купить|оплат|абонемент)/i.test(normalized);
+    const wantsTrainer = /(нагруз|план|програм|тренер|силов|кардио|похуд|набор)/i.test(normalized);
+
+    let scenario = "Если захотите, после регистрации я помогу продолжить консультацию в личном кабинете.";
+    let route = "/register";
+    if (wantsBooking) {
+      scenario = "Похоже, вы готовы записаться: после регистрации я передам вас администратору для подтверждения слота.";
+      route = "/register?intent=booking";
+    } else if (wantsTrainer) {
+      scenario = "Похоже, вы хотите подобрать нагрузки: после регистрации направим к тренеру для персонального плана.";
+      route = "/register?intent=trainer";
+    } else {
+      scenario = "По фитнес-вопросам можно продолжать консультации с AI-консультантом, лучше после регистрации для сохранения контекста.";
+      route = "/register?intent=consult";
+    }
+
+    const teaser = "Можем присылать новые тарифы и интересные программы — лучше зарегистрироваться, чтобы не потерять рекомендации.";
+    const finalReply = `${response.text}\n\n${scenario}\n${teaser}`;
+
+    db.prepare(`INSERT INTO messages(id, conversation_id, author_role, author_id, content, created_at) VALUES(?, ?, 'ai', NULL, ?, ?)`)
+      .run(nanoid(), conversation.id, finalReply, nowIso());
+    db.prepare(`UPDATE conversations SET updated_at=? WHERE id=?`).run(nowIso(), conversation.id);
+
+    res.json({ ok: true, reply: finalReply, route });
   });
 
   app.get("/client", requireRole("client"), (req, res) => {

@@ -46,6 +46,20 @@ body {
 
 main { padding: 24px 0 44px; }
 
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.home-main,
+.home-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .hero {
   padding: 34px;
   border-radius: 18px;
@@ -176,6 +190,11 @@ th { color: #9fb2d7; font-weight: 600; font-size: .9rem; }
   margin-bottom: 12px;
   padding-right: 4px;
 }
+
+.public-chat {
+  max-height: 320px;
+  min-height: 140px;
+}
 .msg {
   border: 1px solid #2d405f;
   border-radius: 12px;
@@ -197,5 +216,6 @@ th { color: #9fb2d7; font-weight: 600; font-size: .9rem; }
 }
 @media (max-width: 760px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .home-layout { grid-template-columns: 1fr; }
   .hero { padding: 20px; }
 }

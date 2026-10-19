@@ -1,0 +1,28 @@
+<%- include('partials/header', { title: 'Расписание', user }) %>
+<h1>Расписание</h1>
+<nav class="tabs">
+  <a href="/">Главная</a>
+  <a href="/offers">Тарифы</a>
+  <a href="/trainers">Тренеры</a>
+  <a href="/schedule">Расписание</a>
+  <a href="/register?intent=booking">Готов записаться</a>
+</nav>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Событие</th><th>Тип</th><th>Тренер</th><th>Начало</th><th>Окончание</th><th>Мест</th></tr></thead>
+    <tbody>
+    <% schedule.forEach((s) => { %>
+      <tr>
+        <td><%= s.title %></td>
+        <td><%= s.type %></td>
+        <td><%= s.trainer_name || '—' %></td>
+        <td><%= new Date(s.starts_at).toLocaleString('ru-RU') %></td>
+        <td><%= new Date(s.ends_at).toLocaleString('ru-RU') %></td>
+        <td><%= s.capacity %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>
+<p class="muted">Для записи и персональных рекомендаций зарегистрируйтесь в кабинете.</p>
+<%- include('partials/footer') %>

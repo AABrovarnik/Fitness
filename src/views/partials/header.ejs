@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="csrf-token" content="<%= csrfToken %>" />
+  <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
   <title><%= title %> · FitClub Personal</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
@@ -12,17 +12,20 @@
   <nav class="container nav">
     <a href="/" class="brand">FitClub Personal</a>
     <div class="menu">
+      <a href="/offers">Тарифы</a>
+      <a href="/trainers">Тренеры</a>
+      <a href="/schedule">Расписание</a>
       <% if (!user) { %>
         <a href="/login">Войти</a>
         <a href="/register">Регистрация</a>
       <% } else if (user.role === 'client') { %>
         <a href="/client">Кабинет</a>
         <a href="/client/chat">Чат</a>
-        <form method="post" action="/auth/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>" /><button class="link-btn" type="submit">Выйти</button></form>
+        <form method="post" action="/auth/logout"><input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" /><button class="link-btn" type="submit">Выйти</button></form>
       <% } else { %>
         <a href="/admin">Админка</a>
         <a href="/admin/settings">Настройки</a>
-        <form method="post" action="/auth/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>" /><button class="link-btn" type="submit">Выйти</button></form>
+        <form method="post" action="/auth/logout"><input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" /><button class="link-btn" type="submit">Выйти</button></form>
       <% } %>
     </div>
   </nav>

@@ -1,89 +1,64 @@
 <%- include('partials/header', { title: 'Главная', user }) %>
 
-<section class="hero">
-  <h1><%= settings?.club_name ?? 'FitClub Personal' %></h1>
-  <p><%= settings?.description ?? 'Фитнес-клуб с современным залом, групповыми занятиями и персональным сопровождением.' %></p>
-  <div class="badge-row">
-    <span class="badge">Адрес: <%= settings?.address ?? '—' %></span>
-    <span class="badge">Часы: <%= settings?.hours ?? '—' %></span>
-    <span class="badge">Демо-режим</span>
-  </div>
-  <div class="hero-actions">
-    <a class="btn" href="#lead">Записаться на пробную</a>
-    <a class="btn secondary" href="#schedule">Посмотреть расписание</a>
-  </div>
-  <p class="hero-note">Все цены и данные в этой версии — демонстрационные.</p>
-</section>
+<section class="home-layout">
+  <div class="home-main">
+    <section class="hero">
+      <h1><%= settings?.club_name ?? 'FitClub Personal' %></h1>
+      <p><%= settings?.description ?? 'Фитнес-клуб с современным залом, групповыми занятиями и персональным сопровождением.' %></p>
+      <div class="badge-row">
+        <span class="badge">Адрес: <%= settings?.address ?? '—' %></span>
+        <span class="badge">Часы: <%= settings?.hours ?? '—' %></span>
+        <span class="badge">Демо-режим</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn" href="#lead">Записаться на пробную</a>
+        <a class="btn secondary" href="/register">Зарегистрироваться</a>
+      </div>
+      <p class="hero-note">Все цены и данные в этой версии — демонстрационные.</p>
+    </section>
 
-<section id="lead">
-  <h2 class="section-title">Быстрый старт в клубе</h2>
-  <p class="section-subtitle">Оставьте контакт — и администратор предложит ближайшее время для старта.</p>
-  <form id="leadForm" class="card grid-3">
-    <label class="sr-only" for="leadName">Ваше имя</label>
-    <input id="leadName" name="name" aria-label="Ваше имя" placeholder="Ваше имя" required />
-    <label class="sr-only" for="leadContact">Телефон или email</label>
-    <input id="leadContact" name="contact" aria-label="Телефон или email" placeholder="Телефон или email" required />
-    <label class="sr-only" for="leadInterest">Тип запроса</label>
-    <select id="leadInterest" name="interest" aria-label="Тип запроса">
-      <option value="Пробная тренировка">Пробная тренировка</option>
-      <option value="Консультация с тренером">Консультация с тренером</option>
-      <option value="Стартовая неделя">Стартовая неделя</option>
-    </select>
-    <button id="leadSubmit" type="submit">Отправить заявку</button>
-  </form>
-  <p id="leadResult" class="muted" aria-live="polite"></p>
-</section>
+    <section id="lead">
+      <h2 class="section-title">Быстрый старт в клубе</h2>
+      <p class="section-subtitle">Оставьте контакт — и администратор предложит ближайшее время для старта.</p>
+      <form id="leadForm" class="card grid-3">
+        <label class="sr-only" for="leadName">Ваше имя</label>
+        <input id="leadName" name="name" aria-label="Ваше имя" placeholder="Ваше имя" required />
+        <label class="sr-only" for="leadContact">Телефон или email</label>
+        <input id="leadContact" name="contact" aria-label="Телефон или email" placeholder="Телефон или email" required />
+        <label class="sr-only" for="leadInterest">Тип запроса</label>
+        <select id="leadInterest" name="interest" aria-label="Тип запроса">
+          <option value="Пробная тренировка">Пробная тренировка</option>
+          <option value="Консультация с тренером">Консультация с тренером</option>
+          <option value="Стартовая неделя">Стартовая неделя</option>
+        </select>
+        <button id="leadSubmit" type="submit">Отправить заявку</button>
+      </form>
+      <p id="leadResult" class="muted" aria-live="polite"></p>
+    </section>
+  </div>
 
-<section>
-  <h2 class="section-title">Демонстрационные тарифы</h2>
-  <div class="grid-3">
-    <% types.forEach((t) => { %>
-      <article class="card offer-card">
-        <h3><%= t.name %></h3>
-        <p><%= t.description %></p>
-        <p class="price"><%= t.demo_price %> ₽</p>
-        <p class="muted">Демо-стоимость, уточняйте у администратора</p>
-      </article>
-    <% }) %>
-  </div>
-</section>
+  <aside class="home-side">
+    <section class="card stack">
+      <h2>Меню клуба</h2>
+      <a class="btn secondary" href="/offers">Тарифы</a>
+      <a class="btn secondary" href="/trainers">Тренеры</a>
+      <a class="btn secondary" href="/schedule">Расписание</a>
+      <a class="btn secondary" href="/register">Регистрация</a>
+      <p class="muted">Готовы записаться — направим к администратору. Нужно выбрать нагрузки — подскажем тренера.</p>
+    </section>
 
-<section class="grid-2">
-  <div>
-    <h2 class="section-title">Тренерский состав</h2>
-    <% trainers.forEach((t) => { %>
-      <article class="card">
-        <h3><%= t.name %></h3>
-        <p><strong><%= t.specialization %></strong></p>
-        <p class="muted"><%= t.description %></p>
-      </article>
-    <% }) %>
-  </div>
-  <div class="quick-metrics">
-    <h2 class="section-title">Почему удобно</h2>
-    <article class="card"><h3>Гибкий график</h3><p class="muted">Утро, день и вечер — выбирайте комфортный слот.</p></article>
-    <article class="card"><h3>Прозрачная запись</h3><p class="muted">Система не даст записаться при конфликте времени или отсутствии мест.</p></article>
-    <article class="card"><h3>Поддержка в чате</h3><p class="muted">AI и администратор доступны в личном кабинете.</p></article>
-  </div>
-</section>
-
-<section id="schedule">
-  <h2 class="section-title">Ближайшее расписание</h2>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Занятие</th><th>Начало</th><th>Окончание</th><th>Мест</th></tr></thead>
-      <tbody>
-      <% schedule.forEach((s) => { %>
-        <tr>
-          <td><%= s.title %></td>
-          <td><%= new Date(s.starts_at).toLocaleString('ru-RU') %></td>
-          <td><%= new Date(s.ends_at).toLocaleString('ru-RU') %></td>
-          <td><%= s.capacity %></td>
-        </tr>
-      <% }) %>
-      </tbody>
-    </table>
-  </div>
+    <section class="card stack">
+      <h2>AI-консультант</h2>
+      <p class="muted">Задайте вопрос по клубу, записи и формату тренировок.</p>
+      <div id="publicChatBox" class="chat-box public-chat" tabindex="0"></div>
+      <form id="publicChatForm" class="stack">
+        <label class="sr-only" for="publicChatInput">Вопрос для AI-консультанта</label>
+        <textarea id="publicChatInput" name="content" rows="3" placeholder="Например: хочу записаться на пробную, что дальше?" required></textarea>
+        <button id="publicChatSubmit" type="submit">Спросить AI</button>
+      </form>
+      <p id="publicChatResult" class="muted" aria-live="polite"></p>
+    </section>
+  </aside>
 </section>
 
 <script>
@@ -106,6 +81,52 @@
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = 'Отправить заявку';
+      }
+    }
+  });
+
+  const publicChatBox = document.getElementById('publicChatBox');
+  function appendPublicMessage(role, text) {
+    const item = document.createElement('div');
+    item.className = `msg ${role}`;
+    item.innerHTML = `<small>${role === 'client' ? 'Вы' : 'AI-консультант'}</small><p></p>`;
+    item.querySelector('p').textContent = text;
+    publicChatBox.appendChild(item);
+    publicChatBox.scrollTop = publicChatBox.scrollHeight;
+  }
+
+  document.getElementById('publicChatForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const submitButton = document.getElementById('publicChatSubmit');
+    const payload = Object.fromEntries(new FormData(form).entries());
+    appendPublicMessage('client', payload.content);
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'AI думает...';
+    }
+
+    try {
+      const response = await csrfFetch('/api/public/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (result.ok) {
+        appendPublicMessage('ai', result.reply);
+        document.getElementById('publicChatResult').innerHTML = `
+          <a href="${result.route || '/register'}">Перейти к следующему шагу</a>
+        `;
+        form.reset();
+      } else {
+        document.getElementById('publicChatResult').textContent = result.error || 'Ошибка диалога';
+      }
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Спросить AI';
       }
     }
   });

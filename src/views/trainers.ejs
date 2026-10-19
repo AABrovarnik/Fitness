@@ -1,0 +1,20 @@
+<%- include('partials/header', { title: 'Тренеры', user }) %>
+<h1>Тренеры клуба</h1>
+<nav class="tabs">
+  <a href="/">Главная</a>
+  <a href="/offers">Тарифы</a>
+  <a href="/trainers">Тренеры</a>
+  <a href="/schedule">Расписание</a>
+  <a href="/register?intent=trainer">Подобрать нагрузки</a>
+</nav>
+<section class="grid-2">
+  <% trainers.forEach((t) => { %>
+    <article class="card">
+      <h2><%= t.name %></h2>
+      <p><strong><%= t.specialization %></strong></p>
+      <p class="muted"><%= t.description %></p>
+      <a class="btn secondary" href="/register?intent=trainer">Обсудить план с тренером</a>
+    </article>
+  <% }) %>
+</section>
+<%- include('partials/footer') %>
