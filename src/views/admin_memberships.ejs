@@ -1,0 +1,118 @@
+<%- include('partials/header', { title: 'Абонементы', user }) %>
+<h1>Абонементы</h1>
+<nav class="tabs">
+  <a href="/admin">Сводка</a>
+  <a href="/admin/clients">Клиенты</a>
+  <a href="/admin/memberships">Абонементы</a>
+  <a href="/admin/schedule">Расписание</a>
+  <a href="/admin/equipment">Оборудование</a>
+  <a href="/admin/conversations">Обращения</a>
+  <a href="/admin/settings">Настройки</a>
+</nav>
+<% if (saved) { %><p class="success">Изменения сохранены.</p><% } %>
+
+<section class="grid-2">
+  <article class="card stack">
+    <h2>Назначить абонемент клиенту</h2>
+    <form method="post" action="/admin/memberships" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <label>Клиент
+        <select name="client_id" required>
+          <% clients.forEach((c) => { %>
+            <option value="<%= c.id %>"><%= c.name %> · <%= c.email %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>Тип абонемента
+        <select name="type_id" required>
+          <% types.filter(t => t.active).forEach((t) => { %>
+            <option value="<%= t.id %>"><%= t.name %> · <%= t.duration_days %> дн.</option>
+          <% }) %>
+        </select>
+      </label>
+      <label>Дата старта<input type="date" name="starts_at" required /></label>
+      <label>Статус
+        <select name="status">
+          <option value="active">active</option>
+          <option value="pending">pending</option>
+          <option value="frozen">frozen</option>
+        </select>
+      </label>
+      <button type="submit">Назначить</button>
+    </form>
+  </article>
+
+  <article class="card stack">
+    <h2>Новый тип абонемента</h2>
+    <form method="post" action="/admin/membership-types" class="stack">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <label>Название<input name="name" required /></label>
+      <label>Описание<input name="description" required /></label>
+      <label>Демо-цена<input name="demo_price" type="number" min="0" step="100" required /></label>
+      <label>Длительность (дней)<input name="duration_days" type="number" min="1" max="366" required /></label>
+      <label>Лимит посещений (пусто = безлимит)<input name="visit_limit" type="number" min="1" /></label>
+      <label>Правила заморозки<input name="freeze_rules" /></label>
+      <button type="submit">Добавить тип</button>
+    </form>
+  </article>
+</section>
+
+<section>
+  <h2>Типы абонементов</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Название</th><th>Цена</th><th>Дни</th><th>Лимит</th><th>Активен</th><th></th></tr></thead>
+      <tbody>
+      <% types.forEach((t) => { %>
+        <tr>
+          <td><%= t.name %></td>
+          <td><%= t.demo_price %> ₽</td>
+          <td><%= t.duration_days %></td>
+          <td><%= t.visit_limit ?? '∞' %></td>
+          <td><%= t.active ? 'Да' : 'Нет' %></td>
+          <td>
+            <form method="post" action="/admin/membership-types/<%= t.id %>/toggle">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <button type="submit"><%= t.active ? 'Отключить' : 'Включить' %></button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Назначенные абонементы</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Клиент</th><th>Тип</th><th>Период</th><th>Лимит/исп.</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+      <% memberships.forEach((m) => { %>
+        <tr>
+          <td><%= m.client_name %></td>
+          <td><%= m.type_name %></td>
+          <td><%= new Date(m.starts_at).toLocaleDateString('ru-RU') %> — <%= new Date(m.ends_at).toLocaleDateString('ru-RU') %></td>
+          <td><%= m.visit_limit ?? '∞' %> / <%= m.visit_used %></td>
+          <td><%= m.status %></td>
+          <td>
+            <form method="post" action="/admin/memberships/<%= m.id %>/status" class="row">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <select name="status">
+                <option value="pending" <%= m.status === 'pending' ? 'selected' : '' %>>pending</option>
+                <option value="active" <%= m.status === 'active' ? 'selected' : '' %>>active</option>
+                <option value="frozen" <%= m.status === 'frozen' ? 'selected' : '' %>>frozen</option>
+                <option value="expired" <%= m.status === 'expired' ? 'selected' : '' %>>expired</option>
+                <option value="canceled" <%= m.status === 'canceled' ? 'selected' : '' %>>canceled</option>
+              </select>
+              <button type="submit">Обновить</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('partials/footer') %>

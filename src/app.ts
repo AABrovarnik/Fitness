@@ -8,7 +8,7 @@ import { config, getAiModel, isAiKeyConfigured, setAiApiKey, setAiModel } from "
 import { openDb, runMigrations, nowIso, type Db } from "./db/db.js";
 import { hashPassword, verifyPassword } from "./services/auth.js";
 import { requireRole } from "./middleware/auth.js";
-import { validateBooking, canCancelByClient } from "./services/booking.js";
+import { validateBooking, canCancelByClient, hasTrainerOrResourceConflict } from "./services/booking.js";
 import { getAiReply } from "./services/ai.js";
 import { writeAudit } from "./services/audit.js";
 
@@ -644,6 +644,269 @@ export function createApp(dbArg?: Db) {
       : `SELECT id, name, email, phone, status FROM users WHERE role='client' ORDER BY created_at DESC`;
     const clients = q ? db.prepare(sql).all({ q: `%${q}%` }) : db.prepare(sql).all();
     res.render("admin_clients", { clients, q });
+  });
+
+  app.get("/admin/memberships", requireRole("admin"), (_req, res) => {
+    refreshMemberships();
+    const clients = db.prepare(`SELECT id, name, email FROM users WHERE role='client' AND status='active' ORDER BY name`).all();
+    const types = db.prepare(`SELECT id, name, description, demo_price, duration_days, visit_limit, active FROM membership_types ORDER BY active DESC, name`).all();
+    const memberships = db.prepare(`
+      SELECT m.id, m.client_id, m.type_id, m.starts_at, m.ends_at, m.status, m.visit_limit, m.visit_used,
+             u.name as client_name, mt.name as type_name
+      FROM memberships m
+      JOIN users u ON u.id = m.client_id
+      JOIN membership_types mt ON mt.id = m.type_id
+      ORDER BY m.ends_at DESC
+      LIMIT 200
+    `).all();
+
+    res.render("admin_memberships", {
+      clients,
+      types,
+      memberships,
+      saved: _req.query.saved === "1"
+    });
+  });
+
+  app.post("/admin/membership-types", requireRole("admin"), (req, res) => {
+    const schema = z.object({
+      name: z.string().min(2).max(80),
+      description: z.string().min(2).max(300),
+      demo_price: z.coerce.number().int().min(0).max(1000000),
+      duration_days: z.coerce.number().int().min(1).max(366),
+      visit_limit: z.string().optional(),
+      freeze_rules: z.string().max(200).optional()
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).send("Некорректные данные типа абонемента.");
+      return;
+    }
+
+    const visitLimitRaw = String(parsed.data.visit_limit ?? "").trim();
+    const visitLimit = visitLimitRaw ? Number(visitLimitRaw) : null;
+    if (visitLimit !== null && (!Number.isFinite(visitLimit) || visitLimit < 1 || visitLimit > 1000)) {
+      res.status(400).send("Некорректный лимит посещений.");
+      return;
+    }
+
+    db.prepare(`
+      INSERT INTO membership_types(id, name, description, demo_price, duration_days, visit_limit, freeze_rules, active)
+      VALUES(?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(
+      nanoid(),
+      parsed.data.name,
+      parsed.data.description,
+      parsed.data.demo_price,
+      parsed.data.duration_days,
+      visitLimit,
+      parsed.data.freeze_rules ?? ""
+    );
+
+    res.redirect("/admin/memberships?saved=1");
+  });
+
+  app.post("/admin/membership-types/:id/toggle", requireRole("admin"), (req, res) => {
+    const row = db.prepare(`SELECT id, active FROM membership_types WHERE id=?`).get(req.params.id) as { id: string; active: number } | undefined;
+    if (!row) {
+      res.status(404).send("Тип абонемента не найден.");
+      return;
+    }
+    db.prepare(`UPDATE membership_types SET active=? WHERE id=?`).run(row.active ? 0 : 1, row.id);
+    res.redirect("/admin/memberships?saved=1");
+  });
+
+  app.post("/admin/memberships", requireRole("admin"), (req, res) => {
+    const schema = z.object({
+      client_id: z.string().min(3),
+      type_id: z.string().min(3),
+      starts_at: z.string().min(10),
+      status: z.enum(["pending", "active", "frozen", "expired", "canceled"])
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).send("Некорректные данные абонемента.");
+      return;
+    }
+
+    const type = db.prepare(`SELECT id, duration_days, visit_limit FROM membership_types WHERE id=? AND active=1`).get(parsed.data.type_id) as
+      | { id: string; duration_days: number; visit_limit: number | null }
+      | undefined;
+    if (!type) {
+      res.status(400).send("Тип абонемента недоступен.");
+      return;
+    }
+
+    const startDate = new Date(parsed.data.starts_at);
+    if (Number.isNaN(startDate.getTime())) {
+      res.status(400).send("Некорректная дата начала.");
+      return;
+    }
+    const endsAt = new Date(startDate.getTime() + type.duration_days * 86400000).toISOString();
+
+    db.prepare(`
+      INSERT INTO memberships(id, client_id, type_id, starts_at, ends_at, status, visit_limit, visit_used)
+      VALUES(?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(nanoid(), parsed.data.client_id, parsed.data.type_id, startDate.toISOString(), endsAt, parsed.data.status, type.visit_limit);
+
+    res.redirect("/admin/memberships?saved=1");
+  });
+
+  app.post("/admin/memberships/:id/status", requireRole("admin"), (req, res) => {
+    const status = String(req.body.status ?? "");
+    if (!["pending", "active", "frozen", "expired", "canceled"].includes(status)) {
+      res.status(400).send("Некорректный статус.");
+      return;
+    }
+
+    const exists = db.prepare(`SELECT id FROM memberships WHERE id=?`).get(req.params.id) as { id: string } | undefined;
+    if (!exists) {
+      res.status(404).send("Абонемент не найден.");
+      return;
+    }
+
+    db.prepare(`UPDATE memberships SET status=? WHERE id=?`).run(status, req.params.id);
+    res.redirect("/admin/memberships?saved=1");
+  });
+
+  app.get("/admin/schedule", requireRole("admin"), (req, res) => {
+    const trainers = db.prepare(`SELECT id, name FROM trainers WHERE active=1 ORDER BY name`).all();
+    const events = db.prepare(`
+      SELECT s.id, s.type, s.title, s.starts_at, s.ends_at, s.trainer_id, s.resource_name, s.capacity, s.booking_enabled, s.status, t.name as trainer_name
+      FROM schedule_events s
+      LEFT JOIN trainers t ON t.id = s.trainer_id
+      ORDER BY s.starts_at ASC
+      LIMIT 300
+    `).all();
+
+    res.render("admin_schedule", {
+      trainers,
+      events,
+      saved: req.query.saved === "1"
+    });
+  });
+
+  app.post("/admin/schedule", requireRole("admin"), (req, res) => {
+    const schema = z.object({
+      type: z.string().min(2).max(40),
+      title: z.string().min(2).max(120),
+      starts_at: z.string().min(10),
+      ends_at: z.string().min(10),
+      trainer_id: z.string().optional(),
+      resource_name: z.string().max(80).optional(),
+      capacity: z.coerce.number().int().min(1).max(100),
+      level: z.string().max(60).optional(),
+      description: z.string().max(300).optional()
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).send("Некорректные данные события.");
+      return;
+    }
+
+    const startsAt = new Date(parsed.data.starts_at);
+    const endsAt = new Date(parsed.data.ends_at);
+    if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime()) || endsAt <= startsAt) {
+      res.status(400).send("Некорректный интервал времени.");
+      return;
+    }
+
+    const trainerId = String(parsed.data.trainer_id ?? "").trim() || null;
+    const resourceName = String(parsed.data.resource_name ?? "").trim() || null;
+    const conflict = hasTrainerOrResourceConflict(db, {
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+      trainerId,
+      resourceName
+    });
+
+    if (conflict.conflict) {
+      res.status(400).send(conflict.reason ?? "Конфликт по тренеру/ресурсу.");
+      return;
+    }
+
+    db.prepare(`
+      INSERT INTO schedule_events(id, type, title, starts_at, ends_at, trainer_id, resource_name, capacity, booking_enabled, status, level, description)
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, 1, 'active', ?, ?)
+    `).run(
+      nanoid(),
+      parsed.data.type,
+      parsed.data.title,
+      startsAt.toISOString(),
+      endsAt.toISOString(),
+      trainerId,
+      resourceName,
+      parsed.data.capacity,
+      parsed.data.level ?? "",
+      parsed.data.description ?? ""
+    );
+
+    res.redirect("/admin/schedule?saved=1");
+  });
+
+  app.post("/admin/schedule/:id/status", requireRole("admin"), (req, res) => {
+    const status = String(req.body.status ?? "");
+    if (!["active", "canceled"].includes(status)) {
+      res.status(400).send("Некорректный статус.");
+      return;
+    }
+
+    const event = db.prepare(`SELECT id FROM schedule_events WHERE id=?`).get(req.params.id) as { id: string } | undefined;
+    if (!event) {
+      res.status(404).send("Событие не найдено.");
+      return;
+    }
+    db.prepare(`UPDATE schedule_events SET status=? WHERE id=?`).run(status, req.params.id);
+    res.redirect("/admin/schedule?saved=1");
+  });
+
+  app.get("/admin/equipment", requireRole("admin"), (req, res) => {
+    const items = db.prepare(`SELECT id, name, zone, units_total, status FROM equipment ORDER BY zone, name`).all();
+    res.render("admin_equipment", { items, saved: req.query.saved === "1" });
+  });
+
+  app.post("/admin/equipment", requireRole("admin"), (req, res) => {
+    const schema = z.object({
+      name: z.string().min(2).max(120),
+      zone: z.string().min(2).max(80),
+      units_total: z.coerce.number().int().min(1).max(1000),
+      status: z.enum(["available", "maintenance"])
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).send("Некорректные данные оборудования.");
+      return;
+    }
+
+    db.prepare(`INSERT INTO equipment(id, name, zone, units_total, status) VALUES(?, ?, ?, ?, ?)`).run(
+      nanoid(),
+      parsed.data.name,
+      parsed.data.zone,
+      parsed.data.units_total,
+      parsed.data.status
+    );
+    res.redirect("/admin/equipment?saved=1");
+  });
+
+  app.post("/admin/equipment/:id", requireRole("admin"), (req, res) => {
+    const schema = z.object({
+      units_total: z.coerce.number().int().min(1).max(1000),
+      status: z.enum(["available", "maintenance"])
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).send("Некорректные данные оборудования.");
+      return;
+    }
+
+    const exists = db.prepare(`SELECT id FROM equipment WHERE id=?`).get(req.params.id) as { id: string } | undefined;
+    if (!exists) {
+      res.status(404).send("Оборудование не найдено.");
+      return;
+    }
+
+    db.prepare(`UPDATE equipment SET units_total=?, status=? WHERE id=?`).run(parsed.data.units_total, parsed.data.status, req.params.id);
+    res.redirect("/admin/equipment?saved=1");
   });
 
   app.get("/admin/conversations", requireRole("admin"), (_req, res) => {

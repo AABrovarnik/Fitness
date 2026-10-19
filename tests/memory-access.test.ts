@@ -61,5 +61,15 @@ describe("memory and access isolation", () => {
     const response = await agent.get("/admin");
     expect(response.status).toBe(200);
   });
+
+  test("state changing request without csrf token is rejected", async () => {
+    const { db } = setupTestDb();
+    const app = createApp(db);
+
+    const agent = request.agent(app);
+    await login(agent, "a@fitclub.local");
+    const response = await agent.post("/api/client/memory").send({ category: "time", fact: "Будни" });
+    expect(response.status).toBe(403);
+  });
 });
 

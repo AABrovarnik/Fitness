@@ -85,5 +85,39 @@ describe("booking rules", () => {
     const after = db.prepare(`SELECT visit_used FROM memberships WHERE client_id=(SELECT id FROM users WHERE email='a@fitclub.local') LIMIT 1`).get() as { visit_used: number };
     expect(after.visit_used).toBe(0);
   });
+
+  test("admin cannot create overlapping event for same trainer", async () => {
+    const { db } = setupTestDb();
+    const app = createApp(db);
+    const admin = request.agent(app);
+
+    await login(admin, "admin@fitclub.local");
+    const csrf = extractCsrfToken(await admin.get("/admin"));
+
+    const event = db.prepare(`SELECT starts_at, ends_at, trainer_id FROM schedule_events WHERE id='event-1'`).get() as {
+      starts_at: string;
+      ends_at: string;
+      trainer_id: string;
+    };
+
+    const response = await admin
+      .post("/admin/schedule")
+      .set("X-CSRF-Token", csrf)
+      .type("form")
+      .send({
+        type: "group",
+        title: "Conflict Event",
+        starts_at: event.starts_at,
+        ends_at: event.ends_at,
+        trainer_id: event.trainer_id,
+        resource_name: "Another Hall",
+        capacity: 10,
+        level: "any",
+        description: "test"
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.text).toMatch(/Конфликт по тренеру/);
+  });
 });
 

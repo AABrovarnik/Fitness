@@ -1,0 +1,68 @@
+<%- include('partials/header', { title: 'Расписание', user }) %>
+<h1>Расписание и слоты</h1>
+<nav class="tabs">
+  <a href="/admin">Сводка</a>
+  <a href="/admin/clients">Клиенты</a>
+  <a href="/admin/memberships">Абонементы</a>
+  <a href="/admin/schedule">Расписание</a>
+  <a href="/admin/equipment">Оборудование</a>
+  <a href="/admin/conversations">Обращения</a>
+  <a href="/admin/settings">Настройки</a>
+</nav>
+<% if (saved) { %><p class="success">Изменения сохранены.</p><% } %>
+
+<section class="card stack">
+  <h2>Добавить событие</h2>
+  <form method="post" action="/admin/schedule" class="grid-3">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input name="title" placeholder="Название" required />
+    <input name="type" placeholder="Тип (group/intro/personal)" required />
+    <label>Начало<input type="datetime-local" name="starts_at" required /></label>
+    <label>Окончание<input type="datetime-local" name="ends_at" required /></label>
+    <label>Тренер
+      <select name="trainer_id">
+        <option value="">—</option>
+        <% trainers.forEach((t) => { %>
+          <option value="<%= t.id %>"><%= t.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <input name="resource_name" placeholder="Зал / ресурс" />
+    <input type="number" name="capacity" min="1" max="100" placeholder="Вместимость" required />
+    <input name="level" placeholder="Уровень" />
+    <input name="description" placeholder="Описание" />
+    <button type="submit">Добавить событие</button>
+  </form>
+</section>
+
+<section>
+  <h2>События</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Событие</th><th>Старт</th><th>Тренер</th><th>Ресурс</th><th>Места</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+      <% events.forEach((e) => { %>
+        <tr>
+          <td><%= e.title %> <small>(<%= e.type %>)</small></td>
+          <td><%= new Date(e.starts_at).toLocaleString('ru-RU') %></td>
+          <td><%= e.trainer_name || '—' %></td>
+          <td><%= e.resource_name || '—' %></td>
+          <td><%= e.capacity %></td>
+          <td><%= e.status %></td>
+          <td>
+            <form method="post" action="/admin/schedule/<%= e.id %>/status" class="row">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <select name="status">
+                <option value="active" <%= e.status === 'active' ? 'selected' : '' %>>active</option>
+                <option value="canceled" <%= e.status === 'canceled' ? 'selected' : '' %>>canceled</option>
+              </select>
+              <button type="submit">Обновить</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('partials/footer') %>

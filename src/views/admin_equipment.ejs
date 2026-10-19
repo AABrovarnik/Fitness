@@ -1,0 +1,60 @@
+<%- include('partials/header', { title: 'Оборудование', user }) %>
+<h1>Оборудование</h1>
+<nav class="tabs">
+  <a href="/admin">Сводка</a>
+  <a href="/admin/clients">Клиенты</a>
+  <a href="/admin/memberships">Абонементы</a>
+  <a href="/admin/schedule">Расписание</a>
+  <a href="/admin/equipment">Оборудование</a>
+  <a href="/admin/conversations">Обращения</a>
+  <a href="/admin/settings">Настройки</a>
+</nav>
+<% if (saved) { %><p class="success">Изменения сохранены.</p><% } %>
+
+<section class="card stack">
+  <h2>Добавить оборудование</h2>
+  <form method="post" action="/admin/equipment" class="row wrap">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input name="name" placeholder="Название" required />
+    <input name="zone" placeholder="Зона" required />
+    <input type="number" name="units_total" min="1" max="1000" placeholder="Количество" required />
+    <select name="status">
+      <option value="available">available</option>
+      <option value="maintenance">maintenance</option>
+    </select>
+    <button type="submit">Добавить</button>
+  </form>
+</section>
+
+<section>
+  <h2>Список оборудования</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Название</th><th>Зона</th><th>Количество</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+      <% items.forEach((item) => { %>
+        <tr>
+          <td><%= item.name %></td>
+          <td><%= item.zone %></td>
+          <td>
+            <form method="post" action="/admin/equipment/<%= item.id %>" class="row">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <input type="number" name="units_total" min="1" max="1000" value="<%= item.units_total %>" required />
+          </td>
+          <td>
+              <select name="status">
+                <option value="available" <%= item.status === 'available' ? 'selected' : '' %>>available</option>
+                <option value="maintenance" <%= item.status === 'maintenance' ? 'selected' : '' %>>maintenance</option>
+              </select>
+          </td>
+          <td>
+              <button type="submit">Сохранить</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('partials/footer') %>
