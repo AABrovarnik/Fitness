@@ -22,8 +22,7 @@ services:
         value: gpt-4.1-mini
       - key: AI_API_KEY
         sync: false
-
-disks:
-  - name: fitclub-data
-    mountPath: /opt/render/project/src/data
-    sizeGB: 1
+    disk:
+      name: fitclub-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
