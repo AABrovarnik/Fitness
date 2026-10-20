@@ -102,6 +102,14 @@ npm test
 
 Сводка и статусы — в `TEST_RESULTS.md` и `TEST_RESULTS_fitness_memory_access.md`.
 
+## Тестовый деплой (публичная ссылка)
+
+- Готовая инструкция: `DEPLOY_TESTING.md`
+- Конфиг Render Blueprint: `render.yaml`
+- Конфиг Railway: `railway.json`
+
+Рекомендуемый путь для SQLite-версии MVP — Render с persistent disk.
+
 ## Ограничения текущего MVP
 
 - Нет реальных интеграций оплат/CRM/турникетов.

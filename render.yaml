@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: fitness-mvp
+    env: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_PATH
+        value: /opt/render/project/src/data/fitclub.db
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CLUB_TIMEZONE
+        value: Europe/Moscow
+      - key: AI_MODEL
+        value: gpt-4.1-mini
+      - key: AI_API_KEY
+        sync: false
+
+disks:
+  - name: fitclub-data
+    mountPath: /opt/render/project/src/data
+    sizeGB: 1
