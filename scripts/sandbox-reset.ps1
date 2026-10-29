@@ -40,7 +40,7 @@ function Wait-Health {
   return $false
 }
 
-Invoke-Step -Title "Остановка процесса на порту $Port (если запущен)" -Action {
+Invoke-Step -Title "Stop process on port $Port (if running)" -Action {
   $listeners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
   if ($listeners) {
     $pids = $listeners | Select-Object -ExpandProperty OwningProcess -Unique
@@ -50,8 +50,13 @@ Invoke-Step -Title "Остановка процесса на порту $Port (�
     }
   }
   else {
-    Write-Host "Нет активного слушателя на порту $Port"
+    Write-Host "No active listener on port $Port"
   }
+}
+
+Invoke-Step -Title "Preflight environment check" -Action {
+  powershell -ExecutionPolicy Bypass -File .\scripts\sandbox-preflight.ps1
+  if ($LASTEXITCODE -ne 0) { throw "Preflight failed" }
 }
 
 if (-not $SkipInstall) {
@@ -69,17 +74,17 @@ if (-not $SkipBuild) {
 }
 
 if (-not $SkipSeed) {
-  Invoke-Step -Title "seed базы" -Action {
+  Invoke-Step -Title "Seed database" -Action {
     node dist/src/db/seed.js
     if ($LASTEXITCODE -ne 0) { throw "seed failed" }
   }
 }
 
-Invoke-Step -Title "Запуск сервера" -Action {
+Invoke-Step -Title "Start server" -Action {
   Start-Process -FilePath powershell -ArgumentList '-NoProfile','-Command',"`$env:PORT='$Port'; node dist/src/server.js" -WorkingDirectory (Get-Location).Path -WindowStyle Hidden
 }
 
-Invoke-Step -Title "Проверка /health" -Action {
+Invoke-Step -Title "Check /health" -Action {
   if (-not (Wait-Health -Url $BaseUrl)) {
     throw "Сервер не поднялся на $BaseUrl"
   }

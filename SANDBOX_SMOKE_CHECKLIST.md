@@ -10,6 +10,12 @@
 ./scripts/sandbox-smoke.ps1
 ```
 
+Preflight окружения (рекомендуется перед reset):
+
+```powershell
+./scripts/sandbox-preflight.ps1
+```
+
 Для нестандартного адреса:
 
 ```powershell
