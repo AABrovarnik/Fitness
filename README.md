@@ -125,6 +125,11 @@ node dist/src/server.js
 
 Детальный план доработок под этот режим: `SANDBOX_DEPLOY_PLAN.md`.
 
+Операционные документы песочницы:
+
+- Карточка тестера: `SANDBOX_TESTER_CARD.md`
+- Smoke-чеклист: `SANDBOX_SMOKE_CHECKLIST.md`
+
 ## Ограничения текущего MVP
 
 - Нет реальных интеграций оплат/CRM/турникетов.
