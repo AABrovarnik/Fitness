@@ -4,6 +4,18 @@
 
 Использовать перед передачей стенда тестеру и после каждого значимого фикса.
 
+Быстрый автопрогон (PowerShell):
+
+```powershell
+./scripts/sandbox-smoke.ps1
+```
+
+Для нестандартного адреса:
+
+```powershell
+./scripts/sandbox-smoke.ps1 -BaseUrl "http://localhost:3010"
+```
+
 ## A. Доступность стенда
 
 - [ ] `GET /health` возвращает `{"ok":true}`
