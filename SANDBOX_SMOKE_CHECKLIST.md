@@ -16,6 +16,12 @@
 ./scripts/sandbox-smoke.ps1 -BaseUrl "http://localhost:3010"
 ```
 
+Полный reset + smoke (всё в одном):
+
+```powershell
+./scripts/sandbox-reset.ps1
+```
+
 ## A. Доступность стенда
 
 - [ ] `GET /health` возвращает `{"ok":true}`

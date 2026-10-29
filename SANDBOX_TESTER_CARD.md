@@ -68,3 +68,9 @@ node dist/src/db/seed.js
 node dist/src/server.js
 ```
 
+Или одной командой (PowerShell):
+
+```powershell
+./scripts/sandbox-reset.ps1
+```
+

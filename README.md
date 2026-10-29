@@ -130,6 +130,7 @@ node dist/src/server.js
 - Карточка тестера: `SANDBOX_TESTER_CARD.md`
 - Smoke-чеклист: `SANDBOX_SMOKE_CHECKLIST.md`
 - Автопроверка smoke (PowerShell): `scripts/sandbox-smoke.ps1`
+- Полный reset + smoke (PowerShell): `scripts/sandbox-reset.ps1`
 
 ## Ограничения текущего MVP
 
