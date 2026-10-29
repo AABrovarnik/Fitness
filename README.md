@@ -102,13 +102,26 @@ npm test
 
 Сводка и статусы — в `TEST_RESULTS.md` и `TEST_RESULTS_fitness_memory_access.md`.
 
-## Тестовый деплой (публичная ссылка)
+## Режим тестовой песочницы (1–2 недели)
 
-- Готовая инструкция: `DEPLOY_TESTING.md`
-- Конфиг Render Blueprint: `render.yaml`
-- Конфиг Railway: `railway.json`
+Принятый рабочий режим для MVP:
 
-Рекомендуемый путь для SQLite-версии MVP — Render с persistent disk.
+- Основной контур тестирования — песочница.
+- Окно доступа для тестера: 1–2 недели.
+- После завершения окна песочница закрывается.
+- Перевод в production обсуждается отдельным решением.
+
+Быстрое восстановление стенда из GitHub:
+
+```bash
+npm install
+npm run build
+node dist/src/db/seed.js
+node dist/src/server.js
+```
+
+Внешний хостинг (Render/Railway) — опционально, только если нужна отдельная публичная ссылка.
+Подробно: `DEPLOY_TESTING.md`.
 
 ## Ограничения текущего MVP
 
