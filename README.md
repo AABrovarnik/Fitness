@@ -129,6 +129,7 @@ node dist/src/server.js
 
 - Карточка тестера: `SANDBOX_TESTER_CARD.md`
 - Smoke-чеклист: `SANDBOX_SMOKE_CHECKLIST.md`
+- Шаблон журнала прогонов: `SANDBOX_RUN_LOG_TEMPLATE.md`
 - Preflight (PowerShell): `scripts/sandbox-preflight.ps1`
 - Автопроверка smoke (PowerShell): `scripts/sandbox-smoke.ps1`
 - Полный reset + smoke (PowerShell): `scripts/sandbox-reset.ps1`
